@@ -41,30 +41,33 @@ backend, and database source for code and infrastructure together
 and assemble them into a master template (with a few other support pieces in
 an infrastructure repository).
 
-The above would become three separate documents:
+The above would become four separate documents maintained in separate repositories:
 
-<table><tr><th>Infrastructure::cfn.yml</th><th>React::cfn.yml</th><th>Flask::cfn.yml</th><th>MongoDB::cfn.yml</th></tr>
-<tr><td valign="top"><pre>Resources:
+<table><tr><th>Infrastructure::cfn.yml</th><th>React::cfn.yml</th></tr>
+<tr><td valign="top"><pre lang="yaml">Resources:
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
       ContainerDefinitions:
-        !Transclude ContainerDefinitions</pre></td>
-<td valign="top"><pre>!Assembly ContainerDefinitions:
+        !Transclude ContainerDefinitions
+        </pre></td>
+<td valign="top"><pre lang="yaml">!Assembly ContainerDefinitions:
   - # Frontend container
     Image: !Ref ReactImage
     PortMappings:
       - ContainerPort: 8080
         HostPort: 80
-        Protocol: tcp</pre></td>
-<td valign="top"><pre>!Assembly ContainerDefinitions:
+        Protocol: tcp</pre></td></tr>
+<tr><td colspan=4><br></td></tr>
+<tr><th>Flask::cfn.yml</th><th>MongoDB::cfn.yml</th></tr>
+<tr><td valign="top"><pre lang="yaml">!Assembly ContainerDefinitions:
   - # Backend container
     Image: !Ref FlaskImage
     PortMappings:
       - ContainerPort: 8080
         HostPort: 1080
         Protocol: tcp</pre></td>
-<td valign="top"><pre>!Assembly ContainerDefinitions:
+<td valign="top"><pre lang="yaml">!Assembly ContainerDefinitions:
   - # MongoDB container
     Image: !Ref MongoDBImage
     MountPoints:
@@ -92,19 +95,19 @@ One document is designated the template. This document is written to the output,
 ## Simple examples
 
 <table><tr><th>Template document</th><th>Resource 1</th><th>Resource 2</th><th>Result</th></tr>
-<tr><td valign="top"><pre>Hello:
+<tr><td valign="top"><pre lang="yaml">Hello:
   !Transclude values:
     - Alpha
     - Bravo</pre></td>
-<td valign="top"><pre>
+<td valign="top"><pre lang="yaml">
 !Transclude values:
   - Charlie
   - Delta</pre></td>
-<td valign="top"><pre>
+<td valign="top"><pre lang="yaml">
 !Transclude values:
   - Echo
   - Foxtrot</pre></td>
-<td valign="top"><pre>Hello:
+<td valign="top"><pre lang="yaml">Hello:
   - Alpha
   - Bravo
   - Charlie
