@@ -57,9 +57,7 @@ The above would become four separate documents maintained in separate repositori
     PortMappings:
       - ContainerPort: 8080
         HostPort: 80
-        Protocol: tcp</pre></td></tr>
-<tr><td colspan=4><br></td></tr>
-<tr><th>Flask::cfn.yml</th><th>MongoDB::cfn.yml</th></tr>
+        Protocol: tcp</pre></td></tr><tr><th>Flask::cfn.yml</th><th>MongoDB::cfn.yml</th></tr>
 <tr><td valign="top"><pre lang="yaml">!Assembly ContainerDefinitions:
   - # Backend container
     Image: !Ref FlaskImage
