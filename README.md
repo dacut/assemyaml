@@ -98,11 +98,11 @@ One document is designated the template. This document is written to the output,
     - Alpha
     - Bravo</pre></td>
 <td valign="top"><pre lang="yaml">
-!Transclude values:
+!Assembly values:
   - Charlie
   - Delta</pre></td>
 <td valign="top"><pre lang="yaml">
-!Transclude values:
+!Assembly values:
   - Echo
   - Foxtrot</pre></td>
 <td valign="top"><pre lang="yaml">Hello:
@@ -113,3 +113,110 @@ One document is designated the template. This document is written to the output,
   - Echo
   - Foxtrot</pre></td>
 </tr></table>
+
+<table><tr><th>Template document</th><th>Resource 1</th><th>Resource 2</th><th>Result</th></tr>
+<tr><td valign="top"><pre lang="yaml">Hello:
+  !Transclude values:
+    Alpha: 1
+    Bravo: 2</pre></td>
+<td valign="top"><pre lang="yaml">
+!Assembly values:
+  Charlie: 3
+  Delta: 4</pre></td>
+<td valign="top"><pre lang="yaml">
+!Assembly values:
+  Echo: 5
+  Foxtrot: 6</pre></td>
+<td valign="top"><pre lang="yaml">Hello:
+  Alpha: 1
+  Bravo: 2
+  Charlie: 3
+  Delta: 4
+  Echo: 5
+  Foxtrot: 6</pre></td>
+</tr></table>
+
+## Global Tags
+
+If you're using local tags `!Transclude` or `!Assembly` for another purpose (or if local tags
+offend you), you may tell Assemyaml to use global tags instead:
+
+<table><tr><th>Template document</th><th>Resource document</th></tr>
+<tr><td valign="top"><pre lang="yaml">%TAG !assemyaml! tag:assemyaml.nz,2017:
+---
+Hello:
+  !assemyaml!Transclude values:
+  - Alpha
+</pre></td>
+<td valign="top"><pre lang="yaml">%TAG !assemyaml! tag:assemyaml.nz,2017:
+---
+!assemyaml!Assembly values:
+  - Bravo
+</pre></td></table>
+
+## Command-line Usage
+
+<code>assemyaml [options] <em>template-document</em> <em>resource-documents</em>...</code><br>
+<code>assemyaml [options] --template <em>template-document</em> <em>resource-documents</em>...</code>
+
+Options:
+* <code>--no-local-tag</code> - Ignore <code>!Transclude</code> and <code>!Assembly</code>
+  local tags and use global tags only.
+* <code>--output <em>filename</em></code> - Write output to <em>filename</em> instead of stdout.
+
+## CodePipeline/Lambda Usage
+
+When used as a [Lambda invocation stage in CodePipeline](http://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html), UserParameters is a JSON object with the following syntax:
+<pre lang="json">{
+    "TemplateDocument": "<em>input-artifact</em>::<em>filename</em>",
+    "ResourceDocuments": ["<em>input-artifact</em>::<em>filename</em>", ...],
+    "DefaultInputFilename": "<em>filename</em>",
+    "OutputFilename": "<em>filename</em>",
+    "LocalTag": true|false
+}</pre>
+
+All parameters are optional.
+
+`TemplateDocument` specifies the input artifact and the filename within the artifact to use as the template document.
+
+`ResourceDocuments` specifies the input artifacts and filename within each artifact to use as resource documents. Any input artifacts not referenced in either `TemplateDocuments` or `ResourceDocuments` are appended to `ResourceDocuments` as `artifact::DefaultInputFilename`.
+
+The `DefaultInputFilename` key is used for an input artifact filename if an input artifact is not referenced in either `TemplateDocument` or `ResourceDocuments`. It defaults to `assemble.yml`.
+
+`OutputFilename` specifies the filename to write in the output artifact. It defaults to `assemble.yml`.
+
+`LocalTag` specifies whether the `!Transclude` and `!Assembly` local tags are allowed. It defaults to true.
+
+If `TemplateDocument` or `ResourceDocument` is not specified, the following behavior applies:
+
+<table><tr><th>Options specified</th><th>Input artifacts: `[A, B, C]`</th></tr>
+<tr><td><pre lang="json">{
+    "TemplateDocument": "B::f2",
+    "ResourceDocuments": [ "A::f1", "C::f3" ]
+}</pre></td><td><pre lang="json">{
+    "TemplateDocument": "B::f2",
+    "ResourceDocuments": [ "A::f1", "C::f3" ]
+}</pre></td></tr>
+<tr><td><pre lang="json">{
+    "TemplateDocument": "B::f2"
+}</pre></td><td><pre lang="json">{
+    "TemplateDocument": "B::f2",
+    "ResourceDocuments": [ "A::assemble.yml", "C::assemble.yml" ]
+}</pre></td></tr>
+<tr><td><pre lang="json">{
+    "ResourceDocuments": [ "A::f1", "C::f3" ]
+}</pre></td><td><pre lang="json">{
+    "TemplateDocument": "B::assemble.yml",
+    "ResourceDocuments": [ "A::f1", "C::f3" ]
+}</pre></td></tr>
+<tr><td><pre lang="json">{
+    "ResourceDocuments": [ "C::f3" ]
+}</pre></td><td><pre lang="json">{
+    "TemplateDocument": "A::assemble.yml",
+    "ResourceDocuments": [ "C::f3", "B::assemble.yml" ]
+}</pre></td></tr>
+<tr><td><pre lang="json"></pre></td>
+<td><pre lang="json">{
+    "TemplateDocument": "A::assemble.yml",
+    "ResourceDocuments": [ "B::assemble.yml", "C::assemble.yml" ]
+}</pre></td></table>
