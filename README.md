@@ -81,6 +81,8 @@ one or more YAML collections (sequence or mapping). It takes a string name used 
 for the transclusion point. The transclusion is a mapping key; if the value is not null,
 it is used as an assembly for that transclusion point.
 
+The mapping containing the `!Transclude` tag **must not** contain any other elements.
+
 The `!Assembly` tag specifies an assembly -- one or more YAML collections to be injected
 into a corresponding transclusion point. It takes a string specifying the transclusion label.
 If multiple documents provide the same assembly, the collection **must** be the same type;
@@ -88,7 +90,7 @@ you cannot mix sequences and mappings. If the assemblies are mappings, they **mu
 have unique keys.
 
 One document is designated the template. This document is written to the output, with all
-`!Transclude` directives overwritten. The other documents are called resources.
+`!Transclude` mappings replaced by the assembled values. The other documents are called resources.
 
 ## Simple examples
 
