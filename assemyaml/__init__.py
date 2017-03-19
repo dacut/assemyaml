@@ -8,11 +8,35 @@ from .transclude import transclude_template
 from yaml import dump_all
 from yaml.error import YAMLError
 
+
+def run(template_fd, resource_fds, output_fd, local_tags):
+    assemblies = {}
+    for fd in resource_fds:
+        try:
+            record_assemblies(fd, assemblies, local_tags)
+        except YAMLError as e:
+            print("Error while processing resource document %s:" % fd.filename,
+                  file=stderr)
+            print(str(e), file=stderr)
+            return 1
+
+    try:
+        docs = transclude_template(template_fd, assemblies, local_tags)
+    except YAMLError as e:
+        print("Error while processing template document %s:" %
+              template_fd.filename, file=stderr)
+        print(str(e), file=stderr)
+        return 1
+
+    dump_all(docs, output_fd)
+
+    return 0
+
+
 def main(args=None):
     template_filename = None
     local_tags = True
     output = stdout
-    assemblies = {}
 
     if args is None:
         args = argv[1:]
@@ -49,39 +73,33 @@ def main(args=None):
         template_filename = filenames[0]
         filenames = filenames[1:]
 
+    try:
+        template_fd = open(template_filename, "r")
+    except IOError as e:
+        print("Unable to open %s for reading: %s" % (template_filename, e),
+              file=stderr)
+        return 1
+
+    resource_fds = []
     for filename in filenames:
         try:
-            with open(filename, "r") as resource:
-                record_assemblies(resource, assemblies, local_tags)
+            resource_fds.append(open(filename, "r"))
         except IOError as e:
             print("Unable to open %s for reading: %s" % (filename, e),
                   file=stderr)
             return 1
-        except YAMLError as e:
-            print("Error while processing resource document %s:" % filename,
-                  file=stderr)
-            print(str(e), file=stderr)
-            return 1
 
-    try:
-        with open(template_filename, "r") as template:
-            docs = transclude_template(template, assemblies, local_tags)
-    except IOError as e:
-        print("Unable to open %s for reading: %s" % (filename, e),
-              file=stderr)
-        return 1
-    except YAMLError as e:
-        print("Error while processing template document %s:" % filename,
-              file=stderr)
-        print(str(e), file=stderr)
-        return 1
+    result = run(template_fd, resource_fds, output, local_tags)
 
-    dump_all(docs, output)
+    template_fd.close()
+    for fd in resource_fds:
+        fd.close()
+
     if output is not stdout:
         output.flush()
         output.close()
 
-    return 0
+    return result
 
 
 def usage(fd=stderr):
@@ -124,6 +142,7 @@ Options:
 """ % {"argv0": basename(argv[0])})
     fd.flush()
     return
+
 
 if __name__ == "__main__":
     sys_exit(main(argv[1:]))
