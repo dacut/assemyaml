@@ -1,7 +1,9 @@
 from six.moves import range
 from .assemble import get_assemblies
+from .error import TranscludeError
 from .loader import LocatableLoader
 from .types import AssemblyPoint, TranscludePoint
+
 
 def transclude_template(stream, assemblies, local_tags=True):
     loader = LocatableLoader(stream)
@@ -12,10 +14,10 @@ def transclude_template(stream, assemblies, local_tags=True):
         loader.add_constructor(
             AssemblyPoint.global_tag, AssemblyPoint.construct)
         if local_tags:
-            loader.add_constructor(TranscludePoint.local_tag,
-                TranscludePoint.construct)
-            loader.add_constructor(AssemblyPoint.local_tag,
-                AssemblyPoint.construct)
+            loader.add_constructor(
+                TranscludePoint.local_tag, TranscludePoint.construct)
+            loader.add_constructor(
+                AssemblyPoint.local_tag, AssemblyPoint.construct)
 
         documents = []
 
@@ -31,6 +33,7 @@ def transclude_template(stream, assemblies, local_tags=True):
         return documents
     finally:
         loader.dispose()
+
 
 def transclude(node, assemblies):
     """
@@ -61,7 +64,7 @@ def transclude(node, assemblies):
                 elif trans_value is None:
                     value = asy_value
                 else:
-                    raise AssemblyError(
+                    raise TranscludeError(
                         "Mismatched assembly types for %s: list at" %
                         trans_name,
                         getattr(asy_value, "start_mark", None),
@@ -72,7 +75,7 @@ def transclude(node, assemblies):
                     value = asy_value.copy()
                     for key in trans_value:
                         if key in asy_value:
-                            raise AssemblyError(
+                            raise TranscludeError(
                                 ("Duplicate key %r for assembly %s: first "
                                  "occurence at") % (key, trans_name),
                                 getattr(asy_value, "start_mark", None),
@@ -82,7 +85,7 @@ def transclude(node, assemblies):
                 elif trans_value is None:
                     value = asy_value
                 else:
-                    raise AssemblyError(
+                    raise TranscludeError(
                         "Mismatched assembly types for %s: dict at" %
                         trans_name,
                         getattr(asy_value, "start_mark", None),
@@ -91,9 +94,9 @@ def transclude(node, assemblies):
             elif asy_value is None:
                 value = trans_value
             elif trans_value is not None:
-                raise AssemblyError(
+                raise TranscludeError(
                     "Cannot set value for transclude %s: %s at" % (
-                    trans_name, asy_value.py_type.__name__),
+                        trans_name, asy_value.py_type.__name__),
                     getattr(asy_value, "start_mark", None),
                     "%s at" % trans_value.py_type.__name__,
                     getattr(trans_value, "start_mark", None))
@@ -104,6 +107,7 @@ def transclude(node, assemblies):
         # Recurse on the value
         transclude(value, assemblies)
     return
+
 
 def get_transclude(node):
     """
@@ -144,7 +148,7 @@ def get_transclude(node):
     if isinstance(transclude_key.name, (list, dict, tuple)):
         raise TranscludeError(
             None, None, "Transclude name must be a scalar",
-            getattr(assembly_key.name, "start_mark", None),
-            getattr(assembly_key.name, "end_mark", None))
+            getattr(transclude_key.name, "start_mark", None),
+            getattr(transclude_key.name, "end_mark", None))
 
     return (transclude_key.name, node[transclude_key])

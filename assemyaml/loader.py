@@ -5,6 +5,7 @@ from yaml.composer import Composer
 from .constructor import LocatableConstructor
 from yaml.resolver import Resolver
 
+
 class LocatableLoader(Reader, Scanner, Parser, Composer, LocatableConstructor,
                       Resolver):
     def __init__(self, stream):

@@ -3,6 +3,7 @@ from .error import AssemblyError
 from .loader import LocatableLoader
 from .types import AssemblyPoint, TranscludePoint
 
+
 def record_assemblies(stream, assemblies, local_tags=True):
     loader = LocatableLoader(stream)
 
@@ -13,15 +14,16 @@ def record_assemblies(stream, assemblies, local_tags=True):
             AssemblyPoint.global_tag, AssemblyPoint.construct)
         if local_tags:
             loader.add_constructor(TranscludePoint.local_tag,
-                TranscludePoint.construct)
+                                   TranscludePoint.construct)
             loader.add_constructor(AssemblyPoint.local_tag,
-                AssemblyPoint.construct)
+                                   AssemblyPoint.construct)
 
         while loader.check_data():
             doc = loader.get_data()
             get_assemblies([doc], assemblies)
     finally:
         loader.dispose()
+
 
 def get_assemblies(node, assemblies):
     """
@@ -74,7 +76,7 @@ def get_assemblies(node, assemblies):
             elif existing_value is not None:
                 raise AssemblyError(
                     "Cannot set value for assembly %s: %s at" % (
-                    asy_name, existing_value.py_type.__name__),
+                        asy_name, existing_value.py_type.__name__),
                     getattr(existing_value, "start_mark", None),
                     "%s at" % asy_value.py_type.__name__,
                     getattr(asy_value, "start_mark", None))
@@ -85,6 +87,7 @@ def get_assemblies(node, assemblies):
         # Recurse on the value
         get_assemblies(value, assemblies)
     return
+
 
 def get_assembly(node):
     """

@@ -1,5 +1,6 @@
 from .constructor import Locatable
 
+
 class TAPoint(Locatable):
     namespace = "tag:assemyaml.nz,2017:"
 
@@ -18,7 +19,9 @@ class TAPoint(Locatable):
 
     @classmethod
     def represent(cls, dumper, data):
-        dumper.represent_str("ERROR: Attempted to stream out %s" % cls.__name__)
+        dumper.represent_str("ERROR: Attempted to stream out %s" %
+                             cls.__name__)
+
 
 class TranscludePoint(TAPoint):
     global_tag = TAPoint.namespace + "Transclude"
@@ -26,6 +29,7 @@ class TranscludePoint(TAPoint):
 
     def __repr__(self):
         return "!Transclude %s" % self.name
+
 
 class AssemblyPoint(TAPoint):
     global_tag = TAPoint.namespace + "Assembly"

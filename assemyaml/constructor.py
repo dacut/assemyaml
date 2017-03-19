@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-from six import binary_type
-from yaml.constructor import Constructor
+from yaml.constructor import Constructor, ConstructorError
+from yaml.nodes import MappingNode, SequenceNode
 from yaml.representer import Representer
+
 
 class Locatable(object):
     def _set_marks(self, node):
@@ -9,7 +10,7 @@ class Locatable(object):
         self.end_mark = node.end_mark
 
     def copy(self):
-        result = super(LocatableValue, self).copy()
+        result = super(Locatable, self).copy()
         result = type(self)(result)
         result.start_mark = self.start_mark
         result.end_mark = self.end_mark
@@ -18,6 +19,7 @@ class Locatable(object):
     @classmethod
     def represent(cls, dumper, data):
         return dumper.represent_data(data.py_type(data))
+
 
 class LocatableNull(Locatable):
     py_type = type(None)
@@ -45,7 +47,10 @@ class LocatableNull(Locatable):
     @classmethod
     def represent(cls, dumper, data):
         return dumper.represent_data(None)
+
+
 Representer.add_representer(LocatableNull, LocatableNull.represent)
+
 
 class LocatableBool(Locatable):
     py_type = bool
@@ -96,6 +101,8 @@ class LocatableBool(Locatable):
 
     def represent(self):
         return None
+
+
 Representer.add_representer(LocatableBool, Locatable.represent)
 
 LocatableDict = type("LocatableDict", (Locatable, dict), {"py_type": dict})
@@ -106,6 +113,7 @@ Representer.add_representer(LocatableList, Locatable.represent)
 
 LocatableSet = type("LocatableSet", (Locatable, set), {"py_type": set})
 Representer.add_representer(LocatableSet, Locatable.represent)
+
 
 class LocatableConstructor(Constructor):
     locatable_classes = {
@@ -172,17 +180,23 @@ class LocatableConstructor(Constructor):
         omap._set_marks(node)
         yield omap
         if not isinstance(node, SequenceNode):
-            raise ConstructorError("while constructing an ordered map", node.start_mark,
-                    "expected a sequence, but found %s" % node.id, node.start_mark)
+            raise ConstructorError(
+                "while constructing an ordered map", node.start_mark,
+                "expected a sequence, but found %s" % node.id,
+                node.start_mark)
         for subnode in node.value:
             if not isinstance(subnode, MappingNode):
-                raise ConstructorError("while constructing an ordered map", node.start_mark,
-                        "expected a mapping of length 1, but found %s" % subnode.id,
-                        subnode.start_mark)
+                raise ConstructorError(
+                    "while constructing an ordered map", node.start_mark,
+                    "expected a mapping of length 1, but "
+                    "found %s" % subnode.id,
+                    subnode.start_mark)
             if len(subnode.value) != 1:
-                raise ConstructorError("while constructing an ordered map", node.start_mark,
-                        "expected a single mapping item, but found %d items" % len(subnode.value),
-                        subnode.start_mark)
+                raise ConstructorError(
+                    "while constructing an ordered map", node.start_mark,
+                    "expected a single mapping item, but "
+                    "found %d items" % len(subnode.value),
+                    subnode.start_mark)
             key_node, value_node = subnode.value[0]
             key = self.construct_object(key_node)
             value = self.construct_object(value_node)
@@ -194,17 +208,22 @@ class LocatableConstructor(Constructor):
         pairs._set_marks(node)
         yield pairs
         if not isinstance(node, SequenceNode):
-            raise ConstructorError("while constructing pairs", node.start_mark,
-                    "expected a sequence, but found %s" % node.id, node.start_mark)
+            raise ConstructorError(
+                "while constructing pairs", node.start_mark,
+                "expected a sequence, but found %s" % node.id,
+                node.start_mark)
         for subnode in node.value:
             if not isinstance(subnode, MappingNode):
-                raise ConstructorError("while constructing pairs", node.start_mark,
-                        "expected a mapping of length 1, but found %s" % subnode.id,
-                        subnode.start_mark)
+                raise ConstructorError(
+                    "while constructing pairs", node.start_mark,
+                    "expected a mapping of length 1, but "
+                    "found %s" % subnode.id, subnode.start_mark)
             if len(subnode.value) != 1:
-                raise ConstructorError("while constructing pairs", node.start_mark,
-                        "expected a single mapping item, but found %d items" % len(subnode.value),
-                        subnode.start_mark)
+                raise ConstructorError(
+                    "while constructing pairs", node.start_mark,
+                    "expected a single mapping item, but "
+                    "found %d items" % len(subnode.value),
+                    subnode.start_mark)
             key_node, value_node = subnode.value[0]
             key = self.construct_object(key_node)
             value = self.construct_object(value_node)
@@ -218,7 +237,8 @@ class LocatableConstructor(Constructor):
         data.update(value)
 
     def construct_yaml_str(self, node):
-        return self.wrap_object(Constructor.construct_yaml_str(self, node), node)
+        return self.wrap_object(
+            Constructor.construct_yaml_str(self, node), node)
 
     def construct_yaml_seq(self, node):
         data = LocatableList()
@@ -242,6 +262,7 @@ class LocatableConstructor(Constructor):
         else:
             state = self.construct_mapping(node)
             data.__dict__.update(state)
+
 
 LocatableConstructor.add_constructor(
     'tag:yaml.org,2002:null',
@@ -291,5 +312,6 @@ LocatableConstructor.add_constructor(
     'tag:yaml.org,2002:map',
     LocatableConstructor.construct_yaml_map)
 
-LocatableConstructor.add_constructor(None,
+LocatableConstructor.add_constructor(
+    None,
     LocatableConstructor.construct_undefined)
