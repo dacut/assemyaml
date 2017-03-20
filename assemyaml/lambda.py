@@ -132,7 +132,11 @@ class CodePipelineJob(object):
             aws_session_token=creds["sessionToken"])
 
         # CodePipeline itself should be called using the default client.
-        self.codepipeline = boto3.client("codepipeline")
+        # We can't run this during unit tests -- Moto doesn't support it yet.
+        self.skip_codepipelne = (
+            event.get("TestParameters", {}).get("SkipCodePipeline"))
+        if not self.skip_codepipeline: # pragma: no cover
+            self.codepipeline = boto3.client("codepipeline")
 
         # Parameters for running the transclusion
         self.default_input_filename = "assemble.yml"
@@ -303,17 +307,19 @@ class CodePipelineJob(object):
     def send_success(self):
         log.info("Notifying CodePipeline: put_job_success_result(%r)",
                  self.cp_job_id)
-        self.codepipeline.put_job_success_result(jobId=self.cp_job_id)
+        if not self.skip_codepipeline: # pragma: no cover
+            self.codepipeline.put_job_success_result(jobId=self.cp_job_id)
         return
 
     def send_failure(self, message):
         log.info("Notifying CodePipeline: put_job_failure_result("
                  "%r, message=%r)", self.cp_job_id, message)
-        self.codepipeline.put_job_failure_result(
-            jobId=self.cp_job_id, failureDetails={
-                "type": "JobFailed",
-                "message": message,
-            })
+        if not self.skip_codepipeline: # pragma: no cover
+            self.codepipeline.put_job_failure_result(
+                jobId=self.cp_job_id, failureDetails={
+                    "type": "JobFailed",
+                    "message": message,
+                })
         return
 
 
