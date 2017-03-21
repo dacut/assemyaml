@@ -1,4 +1,6 @@
 ---
+  # XXX: YAML doesn't define what happens with duplicate keys in an omap.
+  # PyYAML happily creates a list of tuples with duplicate keys.
   InputArtifacts:
     -
       Name: Template
