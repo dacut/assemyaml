@@ -8,6 +8,8 @@
             !Transclude World:
           Foo:
             !Transclude X:
+          Binary:
+            !Transclude Bin:
     -
       Name: Resource1
       Files:
@@ -18,10 +20,50 @@
       Files:
         "assemble.yml": |
           - !Assembly X: B
+          - !Assembly Bin: !!binary |
+              VGhlIFplbiBvZiBQeXRob24sIGJ5IFRpbSBQZXRlcnMKCkJlYXV0aWZ1bCBpcy
+              BiZXR0ZXIgdGhhbiB1Z2x5LgpFeHBsaWNpdCBpcyBiZXR0ZXIgdGhhbiBpbXBs
+              aWNpdC4KU2ltcGxlIGlzIGJldHRlciB0aGFuIGNvbXBsZXguCkNvbXBsZXggaX
+              MgYmV0dGVyIHRoYW4gY29tcGxpY2F0ZWQuCkZsYXQgaXMgYmV0dGVyIHRoYW4g
+              bmVzdGVkLgpTcGFyc2UgaXMgYmV0dGVyIHRoYW4gZGVuc2UuClJlYWRhYmlsaX
+              R5IGNvdW50cy4KU3BlY2lhbCBjYXNlcyBhcmVuJ3Qgc3BlY2lhbCBlbm91Z2gg
+              dG8gYnJlYWsgdGhlIHJ1bGVzLgpBbHRob3VnaCBwcmFjdGljYWxpdHkgYmVhdH
+              MgcHVyaXR5LgpFcnJvcnMgc2hvdWxkIG5ldmVyIHBhc3Mgc2lsZW50bHkuClVu
+              bGVzcyBleHBsaWNpdGx5IHNpbGVuY2VkLgpJbiB0aGUgZmFjZSBvZiBhbWJpZ3
+              VpdHksIHJlZnVzZSB0aGUgdGVtcHRhdGlvbiB0byBndWVzcy4KVGhlcmUgc2hv
+              dWxkIGJlIG9uZS0tIGFuZCBwcmVmZXJhYmx5IG9ubHkgb25lIC0tb2J2aW91cy
+              B3YXkgdG8gZG8gaXQuCkFsdGhvdWdoIHRoYXQgd2F5IG1heSBub3QgYmUgb2J2
+              aW91cyBhdCBmaXJzdCB1bmxlc3MgeW91J3JlIER1dGNoLgpOb3cgaXMgYmV0dG
+              VyIHRoYW4gbmV2ZXIuCkFsdGhvdWdoIG5ldmVyIGlzIG9mdGVuIGJldHRlciB0
+              aGFuICpyaWdodCogbm93LgpJZiB0aGUgaW1wbGVtZW50YXRpb24gaXMgaGFyZC
+              B0byBleHBsYWluLCBpdCdzIGEgYmFkIGlkZWEuCklmIHRoZSBpbXBsZW1lbnRh
+              dGlvbiBpcyBlYXN5IHRvIGV4cGxhaW4sIGl0IG1heSBiZSBhIGdvb2QgaWRlYS
+              4KTmFtZXNwYWNlcyBhcmUgb25lIGhvbmtpbmcgZ3JlYXQgaWRlYSAtLSBsZXQn
+              cyBkbyBtb3JlIG9mIHRob3NlIQ==
   OutputArtifact:
     Name: Output
     Files:
       "assemble.yml": |
         Hello: A
         Foo: B
+        Binary: !!binary |
+          VGhlIFplbiBvZiBQeXRob24sIGJ5IFRpbSBQZXRlcnMKCkJlYXV0aWZ1bCBpcy
+          BiZXR0ZXIgdGhhbiB1Z2x5LgpFeHBsaWNpdCBpcyBiZXR0ZXIgdGhhbiBpbXBs
+          aWNpdC4KU2ltcGxlIGlzIGJldHRlciB0aGFuIGNvbXBsZXguCkNvbXBsZXggaX
+          MgYmV0dGVyIHRoYW4gY29tcGxpY2F0ZWQuCkZsYXQgaXMgYmV0dGVyIHRoYW4g
+          bmVzdGVkLgpTcGFyc2UgaXMgYmV0dGVyIHRoYW4gZGVuc2UuClJlYWRhYmlsaX
+          R5IGNvdW50cy4KU3BlY2lhbCBjYXNlcyBhcmVuJ3Qgc3BlY2lhbCBlbm91Z2gg
+          dG8gYnJlYWsgdGhlIHJ1bGVzLgpBbHRob3VnaCBwcmFjdGljYWxpdHkgYmVhdH
+          MgcHVyaXR5LgpFcnJvcnMgc2hvdWxkIG5ldmVyIHBhc3Mgc2lsZW50bHkuClVu
+          bGVzcyBleHBsaWNpdGx5IHNpbGVuY2VkLgpJbiB0aGUgZmFjZSBvZiBhbWJpZ3
+          VpdHksIHJlZnVzZSB0aGUgdGVtcHRhdGlvbiB0byBndWVzcy4KVGhlcmUgc2hv
+          dWxkIGJlIG9uZS0tIGFuZCBwcmVmZXJhYmx5IG9ubHkgb25lIC0tb2J2aW91cy
+          B3YXkgdG8gZG8gaXQuCkFsdGhvdWdoIHRoYXQgd2F5IG1heSBub3QgYmUgb2J2
+          aW91cyBhdCBmaXJzdCB1bmxlc3MgeW91J3JlIER1dGNoLgpOb3cgaXMgYmV0dG
+          VyIHRoYW4gbmV2ZXIuCkFsdGhvdWdoIG5ldmVyIGlzIG9mdGVuIGJldHRlciB0
+          aGFuICpyaWdodCogbm93LgpJZiB0aGUgaW1wbGVtZW50YXRpb24gaXMgaGFyZC
+          B0byBleHBsYWluLCBpdCdzIGEgYmFkIGlkZWEuCklmIHRoZSBpbXBsZW1lbnRh
+          dGlvbiBpcyBlYXN5IHRvIGV4cGxhaW4sIGl0IG1heSBiZSBhIGdvb2QgaWRlYS
+          4KTmFtZXNwYWNlcyBhcmUgb25lIGhvbmtpbmcgZ3JlYXQgaWRlYSAtLSBsZXQn
+          cyBkbyBtb3JlIG9mIHRob3NlIQ==
 ...
