@@ -1,0 +1,12 @@
+- !Transclude ListTest:
+    - X
+    - Y
+    - Z
+- !Transclude DictTest:
+    A: 1
+    B: 2
+    C: 3
+- !Transclude SetTest: !!set
+    ? A
+    ? B
+    ? C

@@ -42,7 +42,7 @@ def main(args=None):
     local_tags = True
     output = sys.stdout
 
-    if args is None:
+    if args is None:  # pragma: nocover
         args = argv[1:]
 
     try:
@@ -106,7 +106,10 @@ def main(args=None):
     return result
 
 
-def usage(fd=sys.stderr):
+def usage(fd=None):
+    if fd is None:  # Can't use default args for unit testing.
+        fd = sys.stderr
+
     fd.write("""
 Usage: %(argv0)s [options] template-document resource-documents...
        %(argv0)s [options] --template template-document resource-documents...
@@ -148,5 +151,5 @@ Options:
     return
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: nocover
     sys_exit(main(argv[1:]))

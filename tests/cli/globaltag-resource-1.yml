@@ -1,0 +1,16 @@
+%TAG !assemyaml! tag:assemyaml.nz,2017:
+---
+- !assemyaml!Assembly ListTest:
+    - M
+    - N
+    - O
+- !assemyaml!Assembly DictTest:
+    D: 4
+    E: 5
+    F: 6
+- !assemyaml!Assembly SetTest: !!set
+    ? D
+    ? E
+    ? A
+    ? B
+    ? F

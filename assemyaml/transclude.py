@@ -106,7 +106,9 @@ def transclude(node, assemblies):
                         getattr(trans_value, "start_mark", None))
 
                 value = existing_value.union(trans_value)
-            elif not isinstance(existing_value, (NoneType, LocatableNull)):
+            elif isinstance(existing_value, (NoneType, LocatableNull)):
+                value = trans_value
+            else:
                 raise TranscludeError(
                     "Cannot set value for assembly %s: %s at" % (
                         trans_name, existing_value.py_type.__name__),
