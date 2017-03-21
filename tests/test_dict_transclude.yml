@@ -34,15 +34,15 @@
     Files:
       "assemble.yml": |
         Hello:
-          A: 1
-          B: 2
-          C: 3
-          D: 4
-          E: 5
           F: 6
+          A: 1
+          C: 3
+          B: 2
+          E: 5
+          D: 4
         Foo:
-          G: 7
-          H: 7.5
-          I: true
           J: 2000-01-01T00:00:00Z
+          G: 7
+          I: true
+          H: 7.5
 ...
