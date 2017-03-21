@@ -5,6 +5,7 @@ from json import loads as json_loads
 from logging import getLogger
 from six import string_types
 from tempfile import NamedTemporaryFile
+from traceback import format_exc
 from zipfile import ZipFile
 from . import run
 
@@ -252,7 +253,7 @@ class CodePipelineJob(object):
 
         if ia_name not in self.input_artifacts_by_name:
             raise ValueError(
-                "Invalid value for %s: unknown input artifact %r" %
+                "Invalid value for %s: unknown input artifact %s" %
                 (param_type, ia_name))
 
         return ia_name, filename
@@ -343,5 +344,5 @@ def codepipeline_handler(event, context):
         return
     except Exception as e:
         # Notify CodePipeline that we failed.
-        log.error("Execution failed", exc_info=True)
+        log.error("Execution failed:%s", format_exc())
         cpj.send_failure("Unhandled exception: %s" % e)

@@ -1,0 +1,39 @@
+---
+  InputArtifacts:
+    -
+      Name: Template
+      Files:
+        "myfile.yml": |
+          Hello:
+            - !Transclude World:
+              - A
+              - B
+            - !Transclude Peas:
+        "assemble.yml": |
+          Hello: This is not the file you're looking for.
+    -
+      Name: Resource1
+      Files:
+        "assemble.yml": |
+          - !Assembly World:
+            - C
+            - D
+          - !Assembly Peas:
+            - E
+            - F
+    -
+      Name: Resource2
+      Files:
+        "assemble.yml": |
+          - !Assembly Peas:
+            - G
+            - H
+  OutputArtifact:
+    Name: Output
+  ResourceDocuments:
+    - "Template::myfile.yml"
+    - "Resource1::assemble.yml"
+    - "Resource2::assemble.yml"
+  ExpectedErrors:
+    - No input artifact was selected as the template file.
+...

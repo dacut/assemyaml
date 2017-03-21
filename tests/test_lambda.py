@@ -1,15 +1,17 @@
 from __future__ import print_function
 from assemyaml.lambda_handler import codepipeline_handler
 from boto3.session import Session as Boto3Session
+from contextlib import contextmanager
 from json import dumps as json_dumps
 from moto import mock_s3
 from logging import getLogger, WARNING
 from os import listdir
 from os.path import dirname
 from random import randint
-from six import iteritems, next
+from six import iteritems, next, string_types
 from six.moves import cStringIO as StringIO, range
 from string import ascii_letters, digits
+import sys
 from testfixtures import LogCapture
 from unittest import TestCase
 from uuid import uuid4
@@ -22,6 +24,15 @@ def random_keyname(length=7):  # noqa: E302
     return "".join([
         _keyspace[randint(0, len(_keyspace) - 1)] for i in range(length)])
 
+@contextmanager
+def captured_output():
+    new_out, new_err = StringIO(), StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    try:
+        sys.stdout, sys.stderr = new_out, new_err
+        yield sys.stdout, sys.stderr
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
 
 log = getLogger("test_lambda")
 
@@ -148,34 +159,46 @@ class TestLambda(TestCase):
 
             output_artifact = doc["OutputArtifact"]
 
-        output_filename, expected_content = next(
-            iteritems(output_artifact["Files"]))
-        expected_content = yaml_load(expected_content)
-
         output_artifact_name = output_artifact.get("Name", "Output")
         output_artifact_key = "%s/%s/%s.zip" % (
             self.pipeline_name, output_artifact_name, random_keyname())
-        output_artifact = self.artifact_dict(
+        output_artifact_dict = self.artifact_dict(
             output_artifact_name, output_artifact_key)
 
         event = self.lambda_event(
             input_artifacts=input_artifacts,
-            output_artifact=output_artifact,
+            output_artifact=output_artifact_dict,
             template_document=doc.get("TemplateDocument"),
             resource_documents=doc.get("ResourceDocuments"),
             default_input_filename=doc.get("DefaultInputFilename"),
             local_tags=doc.get("LocalTags"))
 
+        with captured_output() as (out, err):
+            with LogCapture() as l:
+                codepipeline_handler(event, None)
 
-        codepipeline_handler(event, None)
-        result_obj = s3.Object(self.bucket_name, output_artifact_key)
-        result_zip = result_obj.get()["Body"].read()
+        expected_errors = doc.get("ExpectedErrors")
+        if expected_errors:
+            err = str(l) + "\n" + err.getvalue()
 
-        with ZipFile(StringIO(result_zip), "r") as zf:
-            with zf.open(output_filename, "r") as fd:
-                result = yaml_load(fd)
+            if isinstance(expected_errors, string_types):
+                self.assertIn(expected_errors, err)
+            else:
+                for err in expected_errors:
+                    self.assertIn(err, err)
+        else:
+            output_filename, expected_content = next(
+                iteritems(output_artifact["Files"]))
+            expected_content = yaml_load(expected_content)
 
-        self.assertEquals(result, expected_content)
+            result_obj = s3.Object(self.bucket_name, output_artifact_key)
+            result_zip = result_obj.get()["Body"].read()
+
+            with ZipFile(StringIO(result_zip), "r") as zf:
+                with zf.open(output_filename, "r") as fd:
+                    result = yaml_load(fd)
+
+            self.assertEquals(result, expected_content)
 
     def test_documents(self):
         directory = dirname(__file__) + "/lambda"
@@ -241,3 +264,16 @@ class TestLambda(TestCase):
         self.assertIn(
             "Invalid value for TemplateDocument: expected input_artifact::"
             "filename: qwertyuiop", str(l))
+
+    def test_unknown_artifact_parameter(self):
+        event = self.lambda_event(
+            [self.artifact_dict("Input", "missing")],
+            self.artifact_dict("Output", "key"),
+            template_document="Foo::bar")
+
+        with LogCapture() as l:
+            codepipeline_handler(event, None)
+
+        self.assertIn(
+            "Invalid value for TemplateDocument: unknown input artifact Foo",
+            str(l))

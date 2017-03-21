@@ -1,0 +1,33 @@
+---
+  InputArtifacts:
+    -
+      Name: Template
+      Files:
+        "assemble.yml": |
+          Hello:
+            !Transclude World:
+              - A
+              - B
+            !Transclude Peas:
+    -
+      Name: Resource1
+      Files:
+        "assemble.yml": |
+          - !Assembly World:
+            - C
+            - D
+          - !Assembly Peas:
+            - E
+            - F
+    -
+      Name: Resource2
+      Files:
+        "assemble.yml": |
+          - !Assembly Peas:
+            - G
+            - H
+  OutputArtifact:
+    Name: Output
+  ExpectedErrors:
+    - While processing template document Template::myfile.yml from
+...
