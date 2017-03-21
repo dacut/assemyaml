@@ -52,53 +52,82 @@ class LocatableNull(Locatable):
 Representer.add_representer(LocatableNull, LocatableNull.represent)
 
 
-class LocatableBool(Locatable):
-    py_type = bool
-
-    def __init__(self, value):
-        super(LocatableBool, self).__init__()
-        self.value = value
+class LocatableProxy(Locatable):
+    def __init__(self, value, start_mark=None, end_mark=None):
+        super(LocatableProxy, self).__init__()
+        self._proxy_value = value
+        self.start_mark = start_mark
+        self.end_mark = end_mark
         return
 
     def __bool__(self):
-        return bool(self.value)
+        return bool(self._proxy_value)
     __nonzero__ = __bool__
 
     def __eq__(self, other):
-        if isinstance(other, LocatableBool):
-            return self.value == other.value
+        if isinstance(other, LocatableProxy):
+            return self._proxy_value == other._proxy_value
         else:
-            return self.value == other
+            return self._proxy_value == other
 
     def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return hash(self.value)
-
-    def __repr__(self):
-        return repr(self.value)
+        if isinstance(other, LocatableProxy):
+            return self._proxy_value != other._proxy_value
+        else:
+            return self._proxy_value != other
 
     def __lt__(self, other):
-        if isinstance(other, LocatableBool):
-            return self.value < other.value
+        if isinstance(other, LocatableProxy):
+            return self._proxy_value < other._proxy_value
         else:
-            return self.value < other
+            return self._proxy_value < other
 
     def __le__(self, other):
-        if isinstance(other, LocatableBool):
-            return self.value <= other.value
+        if isinstance(other, LocatableProxy):
+            return self._proxy_value <= other._proxy_value
         else:
-            return self.value <= other
-
-    def __gt__(self, other):
-        return not self.__le__(other)
+            return self._proxy_value <= other
 
     def __ge__(self, other):
-        return not self.__lt__(other)
+        if isinstance(other, LocatableProxy):
+            return self._proxy_value >= other._proxy_value
+        else:
+            return self._proxy_value >= other
+
+    def __gt__(self, other):
+        if isinstance(other, LocatableProxy):
+            return self._proxy_value > other._proxy_value
+        else:
+            return self._proxy_value > other
+
+    def __hash__(self):
+        return hash(self._proxy_value)
+
+    def __repr__(self):
+        return repr(self._proxy_value)
+
+    def __getattr__(self, name):
+        return getattr(self._proxy_value, name)
+
+    def __setattr__(self, name, value):
+        if name in ("_proxy_value", "start_mark", "end_mark"):
+            self.__dict__[name] = value
+        else:
+            setattr(self._proxy_value, name, value)
+
+        return
+
+    def __delattr__(self, name):
+        return delattr(self._proxy_value, name)
+
+    @classmethod
+    def represent(cls, dumper, data):
+        return dumper.represent_data(data._proxy_value)
 
 
-Representer.add_representer(LocatableBool, Locatable.represent)
+LocatableBool = type("LocatableBool", (LocatableProxy,),
+                     {"py_type": bool})
+Representer.add_representer(LocatableBool, LocatableProxy.represent)
 
 LocatableDict = type("LocatableDict", (Locatable, dict), {"py_type": dict})
 Representer.add_representer(LocatableDict, Locatable.represent)
@@ -130,9 +159,9 @@ class LocatableConstructor(Constructor):
         if loc_type is None:
             # Construct a new Locatable class
             loc_type = type("Locatable%s" % obj_type.__name__.title(),
-                            (Locatable, obj_type), {"py_type": obj_type})
+                            (LocatableProxy,), {"py_type": obj_type})
             cls.locatable_classes[obj_type] = loc_type
-            Representer.add_representer(loc_type, Locatable.represent)
+            Representer.add_representer(loc_type, LocatableProxy.represent)
 
         result = loc_type(obj)
         result._set_marks(node)

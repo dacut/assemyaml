@@ -28,6 +28,7 @@
               G: 7
               H: 7.5
               I: true
+              J: 2000-01-01T00:00:00Z
   OutputArtifact:
     Name: Output
     Files:
@@ -43,4 +44,5 @@
           G: 7
           H: 7.5
           I: true
+          J: 2000-01-01T00:00:00Z
 ...
