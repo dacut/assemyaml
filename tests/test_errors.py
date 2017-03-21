@@ -160,6 +160,38 @@ class TestErrors(TestCase):
         self.assertIn(
             "Transclude must be a single-entry mapping", err.getvalue())
 
+    def test_omap_message(self):
+        template = StringIO("--- !!omap\nHello")
+        with captured_output() as (out, err):
+            result = run(template, [], StringIO(), True)
+        self.assertEquals(result, 1)
+        self.assertIn("while constructing an ordered map", err.getvalue())
+        self.assertIn("expected a sequence, but found scalar", err.getvalue())
+
+        template = StringIO("--- !!omap\n  - 1")
+        with captured_output() as (out, err):
+            result = run(template, [], StringIO(), True)
+        self.assertEquals(result, 1)
+        self.assertIn("while constructing an ordered map", err.getvalue())
+        self.assertIn(
+            "expected a mapping of length 1, but found scalar", err.getvalue())
+
+        template = StringIO("--- !!omap\n  - [1, 2, 3]")
+        with captured_output() as (out, err):
+            result = run(template, [], StringIO(), True)
+        self.assertEquals(result, 1)
+        self.assertIn("while constructing an ordered map", err.getvalue())
+        self.assertIn(
+            "expected a mapping of length 1, but found sequence", err.getvalue())
+
+        template = StringIO("--- !!omap\n  - foo: bar\n    baz: 0")
+        with captured_output() as (out, err):
+            result = run(template, [], StringIO(), True)
+        self.assertEquals(result, 1)
+        self.assertIn("while constructing an ordered map", err.getvalue())
+        self.assertIn(
+            "expected a single mapping item, but found 2 items", err.getvalue())
+
     def test_pairs_message(self):
         template = StringIO("--- !!pairs\nHello")
         with captured_output() as (out, err):
