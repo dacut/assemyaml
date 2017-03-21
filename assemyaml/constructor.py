@@ -70,8 +70,6 @@ class LocatableBool(Locatable):
         else:
             return self.value == other
 
-        return
-
     def __ne__(self, other):
         return not self.__eq__(other)
 
