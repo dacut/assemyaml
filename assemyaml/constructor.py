@@ -97,9 +97,6 @@ class LocatableBool(Locatable):
     def __ge__(self, other):
         return not self.__lt__(other)
 
-    def represent(self):
-        return None
-
 
 Representer.add_representer(LocatableBool, Locatable.represent)
 
