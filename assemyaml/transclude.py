@@ -96,6 +96,16 @@ def transclude(node, assemblies):
                             "second occurrence at",
                             getattr(trans_value, "start_mark", None))
                     value[dkey] = trans_value[dkey]
+            elif isinstance(existing_value, set):
+                if not isinstance(trans_value, set):
+                    raise TranscludeError(
+                        "Mismatched assembly types for %s: set at" %
+                        trans_name,
+                        getattr(existing_value, "start_mark", None),
+                        "%s at" % trans_value.py_type.__name__,
+                        getattr(trans_value, "start_mark", None))
+
+                value = existing_value.union(trans_value)
             elif not isinstance(existing_value, (NoneType, LocatableNull)):
                 raise TranscludeError(
                     "Cannot set value for assembly %s: %s at" % (

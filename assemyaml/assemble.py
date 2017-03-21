@@ -80,6 +80,15 @@ def get_assemblies(node, assemblies):
                             getattr(asy_value, "start_mark", None))
 
                     existing_value[dkey] = asy_value[dkey]
+            elif isinstance(existing_value, set):
+                if not isinstance(asy_value, set):
+                    raise AssemblyError(
+                        "Mismatched assembly types for %s: set at" % asy_name,
+                        getattr(existing_value, "start_mark", None),
+                        "%s at" % asy_value.py_type.__name__,
+                        getattr(asy_value, "start_mark", None))
+
+                exising_value.update(asy_value)
             elif existing_value is not None:
                 raise AssemblyError(
                     "Cannot set value for assembly %s: %s at" % (
