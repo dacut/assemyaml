@@ -1,0 +1,36 @@
+---
+  InputArtifacts:
+    -
+      Name: Template
+      Files:
+        "assemble.yml": |
+          Hello:
+            !Transclude World:
+              A: 1
+              B: 2
+    -
+      Name: Resource1
+      Files:
+        "assemble.yml": |
+          !Assembly World:
+            C: 3
+            D: 4
+    -
+      Name: Resource2
+      Files:
+        "assemble.yml": |
+          !Assembly World:
+            E: 5
+            F: 6
+  OutputArtifact:
+    Name: Output
+    Files:
+      "assemble.yml": |
+        Hello:
+          A: 1
+          B: 2
+          C: 3
+          D: 4
+          E: 5
+          F: 6
+...

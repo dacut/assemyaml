@@ -1,3 +1,4 @@
+from logging import getLogger
 from six.moves import range
 from .assemble import get_assemblies
 from .constructor import LocatableNull
@@ -7,6 +8,7 @@ from .types import AssemblyPoint, TranscludePoint
 
 
 NoneType = type(None)
+log = getLogger("assemyaml.assemble")
 
 
 def transclude_template(stream, assemblies, local_tags=True):
@@ -77,15 +79,15 @@ def transclude(node, assemblies):
             elif isinstance(asy_value, dict):
                 if isinstance(trans_value, dict):
                     value = asy_value.copy()
-                    for key in trans_value:
-                        if key in asy_value:
+                    for dkey in trans_value:
+                        if dkey in asy_value:
                             raise TranscludeError(
                                 ("Duplicate key %r for assembly %s: first "
                                  "occurence at") % (key, trans_name),
                                 getattr(asy_value, "start_mark", None),
                                 "second occurrence at",
                                 getattr(trans_value, "start_mark", None))
-                        asy_value[key] = trans_value[key]
+                        value[dkey] = trans_value[dkey]
                 elif trans_value is None:
                     value = asy_value
                 else:

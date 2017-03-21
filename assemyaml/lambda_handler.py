@@ -36,14 +36,18 @@ class InputArtifact(object):
         return
 
     def __del__(self):
-        for file in self.extracted_files:
-            file.close()
+        try:
+            for file in self.extracted_files:
+                file.close()
 
-        if self.zip is not None:
-            self.zip.close()
+            if self.zip is not None:
+                self.zip.close()
 
-        if self.artifact_file is not None:
-            self.artifact_file.close()
+            if self.artifact_file is not None:
+                self.artifact_file.close()
+        except Exception as e:
+            print_exc()
+            raise
 
         return
 
@@ -108,7 +112,7 @@ class InputArtifact(object):
 
         ofd.seek(0)
 
-        self.extracted_files = ofd
+        self.extracted_files.append(ofd)
         return ofd
 
 

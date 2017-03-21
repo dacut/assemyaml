@@ -20,14 +20,14 @@
             - E
             - F
   OutputArtifact:
-      Name: Output
-      Files:
-        "assemble.yml": |
-          Hello:
-            - - A
-              - B
-              - C
-              - D
-            - - E
-              - F
+    Name: Output
+    Files:
+      "assemble.yml": |
+        Hello:
+          - - A
+            - B
+            - C
+            - D
+          - - E
+            - F
 ...

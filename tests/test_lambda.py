@@ -3,9 +3,10 @@ from assemyaml.lambda_handler import codepipeline_handler
 from boto3.session import Session as Boto3Session
 from json import dumps as json_dumps
 from moto import mock_s3
-from random import randint
+from logging import getLogger, WARNING
 from os import listdir
 from os.path import dirname
+from random import randint
 from six import iteritems, next
 from six.moves import cStringIO as StringIO, range
 from string import ascii_letters, digits
@@ -21,6 +22,9 @@ def random_keyname(length=7):  # noqa: E302
         _keyspace[randint(0, len(_keyspace) - 1)] for i in range(length)])
 
 
+log = getLogger("test_lambda")
+
+
 @mock_s3
 class TestLambda(TestCase):
     def setUp(self):
@@ -28,6 +32,8 @@ class TestLambda(TestCase):
         #self.bucket_name = "cuthbert-dbr"
         self.pipeline_name = "hello"
         self.boto3 = Boto3Session(region_name="us-west-2")
+        for logname in ("botocore", "s3transfer"):
+            getLogger(logname).setLevel(WARNING)
 
 
     def artifact_dict(self, artifact_name, key):
@@ -124,6 +130,7 @@ class TestLambda(TestCase):
         bucket.create()
 
         with open(filename, "r") as fd:
+            log.info("Running Lambda test on %s" % filename)
             doc = yaml_load(fd)
             input_artifacts = []
 

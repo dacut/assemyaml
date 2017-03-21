@@ -1,3 +1,4 @@
+from logging import getLogger
 from six.moves import range
 from .constructor import LocatableNull
 from .error import AssemblyError
@@ -6,6 +7,7 @@ from .types import AssemblyPoint, TranscludePoint
 
 
 NoneType = type(None)
+log = getLogger("assemyaml.assemble")
 
 
 def record_assemblies(stream, assemblies, local_tags=True):
@@ -46,6 +48,7 @@ def get_assemblies(node, assemblies):
 
     for key in keys:
         value = node[key]
+        log.debug("get_assemblies: node=%s, node[%s]=%s", node, key, value)
         asy_name, asy_value = get_assembly(value)
         if not isinstance(asy_value, (NoneType, LocatableNull)):
             existing_value = assemblies.get(asy_name)
@@ -68,16 +71,16 @@ def get_assemblies(node, assemblies):
                         "%s at" % asy_value.py_type.__name__,
                         getattr(asy_value, "start_mark", None))
 
-                for key in asy_value:
-                    if key in existing_value:
+                for dkey in asy_value:
+                    if dkey in existing_value:
                         raise AssemblyError(
                             ("Duplicate key %r for assembly %s: first "
-                             "occurence at") % (key, asy_name),
+                             "occurence at") % (dkey, asy_name),
                             getattr(existing_value, "start_mark", None),
                             "second occurrence at",
                             getattr(asy_value, "start_mark", None))
 
-                    existing_value[key] = asy_value
+                    existing_value[dkey] = asy_value[dkey]
             elif existing_value is not None:
                 raise AssemblyError(
                     "Cannot set value for assembly %s: %s at" % (
