@@ -17,6 +17,14 @@
             ? 4
             ? 5
             ? 6
+    -
+      Name: Resource2
+      Files:
+        "assemble.yml": |
+          !Assembly World: !!set
+            ? 4
+            ? 7
+            ? 8
   OutputArtifact:
     Name: Output
     Files:
@@ -28,4 +36,6 @@
           ? 4
           ? 5
           ? 6
+          ? 7
+          ? 8
 ...

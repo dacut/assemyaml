@@ -88,7 +88,7 @@ def get_assemblies(node, assemblies):
                         "%s at" % asy_value.py_type.__name__,
                         getattr(asy_value, "start_mark", None))
 
-                exising_value.update(asy_value)
+                existing_value.update(asy_value)
             elif existing_value is not None:
                 raise AssemblyError(
                     "Cannot set value for assembly %s: %s at" % (

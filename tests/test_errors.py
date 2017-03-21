@@ -88,7 +88,6 @@ class TestErrors(TestCase):
         self.assertIn("Mismatched assembly types for Hello: dict at",
                       err.getvalue())
 
-
     def test_dict_duplicate(self):
         resource = StringIO(
             "[{!Assembly Hello: {A: B, C: D}}, {!Assembly Hello: {C: D}}]"
@@ -108,6 +107,51 @@ class TestErrors(TestCase):
         self.assertIn(
             "Duplicate key 'C' for assembly Hello: first occurrence at",
             err.getvalue())
+
+    def test_set_mismatch(self):
+        resource = StringIO(
+            "- !Assembly Hello: !!set\n"
+            "    ? A\n"
+            "- !Assembly Hello: [bar]"
+        )
+        with captured_output() as (out, err):
+            result = run(StringIO(""), [resource], StringIO(), True)
+        self.assertEquals(result, 1)
+        self.assertIn("Mismatched assembly types for Hello: set at",
+                      err.getvalue())
+
+        resource = StringIO(
+            "- !Assembly Hello: !!set\n"
+            "    ? A\n"
+            "- !Assembly Hello: X"
+        )
+        with captured_output() as (out, err):
+            result = run(StringIO(""), [resource], StringIO(), True)
+        self.assertEquals(result, 1)
+        self.assertIn("Mismatched assembly types for Hello: set at",
+                      err.getvalue())
+
+        template = StringIO("[{!Transclude Hello: [Bar]}]")
+        resource = StringIO(
+            "- !Assembly Hello: !!set\n"
+            "    ? A\n"
+        )
+        with captured_output() as (out, err):
+            result = run(template, [resource], StringIO(), True)
+        self.assertEquals(result, 1)
+        self.assertIn("Mismatched assembly types for Hello: set at",
+                      err.getvalue())
+
+        template = StringIO("[{!Transclude Hello: X}]")
+        resource = StringIO(
+            "- !Assembly Hello: !!set\n"
+            "    ? A\n"
+        )
+        with captured_output() as (out, err):
+            result = run(template, [resource], StringIO(), True)
+        self.assertEquals(result, 1)
+        self.assertIn("Mismatched assembly types for Hello: set at",
+                      err.getvalue())
 
     def test_scalar_replacement(self):
         resource = StringIO(
