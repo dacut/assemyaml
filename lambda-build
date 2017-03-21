@@ -1,0 +1,5 @@
+#!/bin/bash
+docker build -t assemyaml_lambda:latest -f lambda.docker .
+mkdir -p lambda_export
+docker run --rm --volume $PWD/lambda_export:/export assemyaml_lambda cp /lambda.zip /export
+mv lambda_export/lambda.zip .

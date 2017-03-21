@@ -1,3 +1,4 @@
+from __future__ import absolute_import, print_function
 import boto3
 from boto3.session import Session as Boto3Session
 from botocore.client import Config
@@ -7,7 +8,7 @@ from six import string_types
 from tempfile import NamedTemporaryFile
 from traceback import format_exc
 from zipfile import ZipFile
-from . import run
+from assemyaml import run
 
 log = getLogger("assemyaml.lambda")
 

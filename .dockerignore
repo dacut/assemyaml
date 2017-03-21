@@ -1,0 +1,8 @@
+__pycache__
+.eggs
+.git
+Assemyaml.egg-info
+build
+dist
+venv*
+.coverage

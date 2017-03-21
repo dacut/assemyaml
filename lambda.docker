@@ -1,0 +1,14 @@
+FROM amazonlinux:latest
+VOLUME ["/export"]
+RUN yum -y update
+RUN yum install -y binutils gcc python27-devel python27-pip zip
+RUN pip install virtualenv
+RUN virtualenv /venv
+COPY . /assemyaml
+WORKDIR /assemyaml
+ENV VIRTUAL_ENV=/venv
+ENV PATH=/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+RUN ./setup.py install
+WORKDIR /venv/lib/python2.7/site-packages
+RUN cp Assemyaml*/assemyaml/lambda_handler.py .
+RUN zip -r /lambda.zip . --exclude botocore\* boto3\* setuptools/\* pip/\*
