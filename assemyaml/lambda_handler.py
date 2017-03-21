@@ -5,7 +5,6 @@ from json import loads as json_loads
 from logging import getLogger
 from six import string_types
 from tempfile import NamedTemporaryFile
-from traceback import print_exc
 from zipfile import ZipFile
 from . import run
 
@@ -343,5 +342,5 @@ def codepipeline_handler(event, context):
         return
     except Exception as e:
         # Notify CodePipeline that we failed.
-        print_exc()
+        log.error("Execution failed", exc_info=True)
         cpj.send_failure("Unhandled exception: %s" % e)

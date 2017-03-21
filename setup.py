@@ -8,7 +8,7 @@ setup(
     packages=["assemyaml"],
     entry_points={"console_scripts": ["assemyaml=assemyaml:main"]},
     install_requires=["PyYAML>=3.0", "six>=1.10.0", "moto>=0.4"],
-    setup_requires=["coverage>=4.0", "nose>=1.0"],
+    setup_requires=["coverage>=4.0", "nose>=1.0", "testfixtures>=4"],
     test_suite="tests",
 
     # PyPI information

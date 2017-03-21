@@ -10,6 +10,7 @@ from random import randint
 from six import iteritems, next
 from six.moves import cStringIO as StringIO, range
 from string import ascii_letters, digits
+from testfixtures import LogCapture
 from unittest import TestCase
 from uuid import uuid4
 from yaml import dump as yaml_dump, load as yaml_load
@@ -176,3 +177,22 @@ class TestLambda(TestCase):
                 continue
 
             self.run_doc(directory + "/" + filename)
+
+    def test_bad_userparams(self):
+        event = self.lambda_event([], self.artifact_dict("Output", "key"))
+        event["CodePipeline.job"]["data"]["actionConfiguration"]\
+            ["configuration"]["UserParameters"] = "{])}"
+
+        with LogCapture() as l:
+            codepipeline_handler(event, None)
+
+        self.assertIn("Expecting property name", str(l))
+
+        event = self.lambda_event([], self.artifact_dict("Output", "key"))
+        event["CodePipeline.job"]["data"]["actionConfiguration"]\
+            ["configuration"]["UserParameters"] = "[]"
+
+        with LogCapture() as l:
+            codepipeline_handler(event, None)
+
+        self.assertIn("Expected a JSON object for user parameters", str(l))
