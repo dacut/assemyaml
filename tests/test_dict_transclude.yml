@@ -27,6 +27,7 @@
           - !Assembly X:
               G: 7
               H: 7.5
+              I: true
   OutputArtifact:
     Name: Output
     Files:
@@ -41,4 +42,5 @@
         Foo:
           G: 7
           H: 7.5
+          I: true
 ...
