@@ -26,6 +26,7 @@
               F: 6
           - !Assembly X:
               G: 7
+              H: 7.5
   OutputArtifact:
     Name: Output
     Files:
@@ -39,4 +40,5 @@
           F: 6
         Foo:
           G: 7
+          H: 7.5
 ...
