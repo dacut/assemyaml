@@ -170,7 +170,7 @@ class TestLambda(TestCase):
         self.assertEquals(result, expected_content)
 
     def test_documents(self):
-        directory = dirname(__file__)
+        directory = dirname(__file__) + "/lambda"
         for filename in listdir(directory):
             if not filename.endswith(".yml"):
                 continue
