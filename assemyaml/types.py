@@ -2,7 +2,7 @@ from .constructor import Locatable
 
 
 class TAPoint(Locatable):
-    namespace = "tag:assemyaml.nz,2017:"
+    namespace = u"tag:assemyaml.nz,2017:"
 
     def __init__(self, name):
         super(TAPoint, self).__init__()
@@ -24,16 +24,16 @@ class TAPoint(Locatable):
 
 
 class TranscludePoint(TAPoint):
-    global_tag = TAPoint.namespace + "Transclude"
-    local_tag = "!Transclude"
+    global_tag = TAPoint.namespace + u"Transclude"
+    local_tag = u"!Transclude"
 
     def __repr__(self):
         return "!Transclude %s" % self.name
 
 
 class AssemblyPoint(TAPoint):
-    global_tag = TAPoint.namespace + "Assembly"
-    local_tag = "!Assembly"
+    global_tag = TAPoint.namespace + u"Assembly"
+    local_tag = u"!Assembly"
 
     def __repr__(self):
         return "!Assembly [%s]" % self.name

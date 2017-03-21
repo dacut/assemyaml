@@ -1,7 +1,11 @@
 from six.moves import range
+from .constructor import LocatableNull
 from .error import AssemblyError
 from .loader import LocatableLoader
 from .types import AssemblyPoint, TranscludePoint
+
+
+NoneType = type(None)
 
 
 def record_assemblies(stream, assemblies, local_tags=True):
@@ -43,16 +47,17 @@ def get_assemblies(node, assemblies):
     for key in keys:
         value = node[key]
         asy_name, asy_value = get_assembly(value)
-        if asy_value is not None:
+        if not isinstance(asy_value, (NoneType, LocatableNull)):
             existing_value = assemblies.get(asy_name)
-            if existing_value is None:
+            if isinstance(existing_value, (NoneType, LocatableNull)):
                 assemblies[asy_name] = asy_value
             elif isinstance(existing_value, list):
                 if not isinstance(asy_value, list):
                     raise AssemblyError(
-                        "Mismatched assembly types for %s: list at" % asy_name,
-                        getattr(existing_value, "start_mark", None),
-                        "%s at" % asy_value.py_type.__name__,
+                        "Mismatched assembly types for %s: list %s at" % (asy_name, existing_value),
+                        getattr(existing_value, "start_mark",
+                        ),
+                        "%s %s at" % (asy_value.py_type.__name__, asy_value),
                         getattr(asy_value, "start_mark", None))
                 existing_value.extend(asy_value)
             elif isinstance(existing_value, dict):

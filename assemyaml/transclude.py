@@ -1,8 +1,12 @@
 from six.moves import range
 from .assemble import get_assemblies
+from .constructor import LocatableNull
 from .error import TranscludeError
 from .loader import LocatableLoader
 from .types import AssemblyPoint, TranscludePoint
+
+
+NoneType = type(None)
 
 
 def transclude_template(stream, assemblies, local_tags=True):
@@ -56,12 +60,12 @@ def transclude(node, assemblies):
         if trans_name is not None:
             asy_value = assemblies.get(trans_name)
             # Merge the assembly value with the transcluded value.
-            if asy_value is None:
+            if isinstance(asy_value, (NoneType, LocatableNull)):
                 value = trans_value
             if isinstance(asy_value, list):
                 if isinstance(trans_value, list):
                     value = trans_value + asy_value
-                elif trans_value is None:
+                elif isinstance(trans_value, (NoneType, LocatableNull)):
                     value = asy_value
                 else:
                     raise TranscludeError(

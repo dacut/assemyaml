@@ -7,7 +7,7 @@ setup(
     version="0.1",
     packages=["assemyaml"],
     entry_points={"console_scripts": ["assemyaml=assemyaml:main"]},
-    install_requires=["PyYAML>=3.0", "six>=1.10.0"],
+    install_requires=["PyYAML>=3.0", "six>=1.10.0", "moto>=0.4"],
     setup_requires=["coverage>=4.0", "nose>=1.0"],
     test_suite="tests",
 

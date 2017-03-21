@@ -26,8 +26,10 @@ def run(template_fd, resource_fds, output_fd, local_tags):
         print("Error while processing template document %s:" %
               template_fd.filename, file=stderr)
         print(str(e), file=stderr)
+        raise
         return 1
 
+    print("Dumping to output_fd: \n%s" % docs)
     dump_all(docs, output_fd)
 
     return 0

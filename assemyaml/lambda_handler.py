@@ -7,7 +7,7 @@ from six import string_types
 from tempfile import NamedTemporaryFile
 from traceback import print_exc
 from zipfile import ZipFile
-from .. import run
+from . import run
 
 log = getLogger("assemyaml.lambda")
 
@@ -106,6 +106,8 @@ class InputArtifact(object):
                     break
                 ofd.write(data)
 
+        ofd.seek(0)
+
         self.extracted_files = ofd
         return ofd
 
@@ -133,7 +135,7 @@ class CodePipelineJob(object):
 
         # CodePipeline itself should be called using the default client.
         # We can't run this during unit tests -- Moto doesn't support it yet.
-        self.skip_codepipelne = (
+        self.skip_codepipeline = (
             event.get("TestParameters", {}).get("SkipCodePipeline"))
         if not self.skip_codepipeline: # pragma: no cover
             self.codepipeline = boto3.client("codepipeline")
@@ -218,7 +220,7 @@ class CodePipelineJob(object):
         # If any input artifacts are untouched, use them as the template or
         # additional resource documents.
         for ia in self.input_artifacts:
-            if ia.name not in seen_artifacts():
+            if ia.name not in seen_artifacts:
                 doc_name = ia.name + "::" + self.default_input_filename
 
                 if self.template_document_name is None:
@@ -290,7 +292,11 @@ class CodePipelineJob(object):
         output_binary = NamedTemporaryFile()
         output_zip = ZipFile(output_binary, "a")
         self.output_temp.seek(0)
-        output_zip.writestr(self.output_filename, self.output_temp.read())
+        content = self.output_temp.read()
+        print("Zipping output into %s:" % self.output_filename)
+        print(content)
+        print("----")
+        output_zip.writestr(self.output_filename, content)
         output_zip.close()
 
         # Write the output artifact
@@ -299,7 +305,8 @@ class CodePipelineJob(object):
         bucket = s3loc["bucketName"]
         key = s3loc["objectKey"]
         output_binary.seek(0)
-        s3 = self.boto_session("s3", config=Config(signature_version="s3v4"))
+        s3 = self.boto_session.client(
+            "s3", config=Config(signature_version="s3v4"))
         s3.put_object(Body=output_binary, Bucket=bucket, Key=key,
                       ServerSideEncryption="aws:kms")
         return
