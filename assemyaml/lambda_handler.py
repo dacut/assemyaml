@@ -136,9 +136,9 @@ class CodePipelineJob(object):
         # We can't run this during unit tests -- Moto doesn't support it yet.
         skip_codepipeline = (
             event.get("TestParameters", {}).get("SkipCodePipeline"))
-        if skip_codepipeline:  # pragma: no cover
+        if skip_codepipeline:
             self.codepipeline = None
-        else:
+        else:  # pragma: no cover
             self.codepipeline = boto3.client("codepipeline")
 
         # Parameters for running the transclusion

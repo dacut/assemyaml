@@ -196,3 +196,28 @@ class TestLambda(TestCase):
             codepipeline_handler(event, None)
 
         self.assertIn("Expected a JSON object for user parameters", str(l))
+
+    def test_unknown_artifacttype(self):
+        event = self.lambda_event(
+            [self.artifact_dict("Input", "missing")],
+            self.artifact_dict("Output", "key"))
+
+        event["CodePipeline.job"]["data"]["inputArtifacts"][0]["location"]\
+            ["type"] = "ftp"
+
+        with LogCapture() as l:
+            codepipeline_handler(event, None)
+
+        self.assertIn("Can't handle input artifact type ftp", str(l))
+
+    def test_missing_artifact(self):
+        event = self.lambda_event(
+            [self.artifact_dict("Input", "missing")],
+            self.artifact_dict("Output", "key"))
+
+        with LogCapture() as l:
+            codepipeline_handler(event, None)
+
+        self.assertIn(
+            "Unable to download input artifact 'Input' (s3://" +
+            self.bucket_name + "/missing):", str(l))
