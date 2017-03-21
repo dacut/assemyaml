@@ -19,6 +19,13 @@
           - !Assembly Peas:
             - E
             - F
+    -
+      Name: Resource2
+      Files:
+        "assemble.yml": |
+          - !Assembly Peas:
+            - G
+            - H
   OutputArtifact:
     Name: Output
     Files:
@@ -30,4 +37,6 @@
             - D
           - - E
             - F
+            - G
+            - H
 ...

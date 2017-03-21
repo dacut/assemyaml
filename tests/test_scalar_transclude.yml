@@ -6,37 +6,22 @@
         "assemble.yml": |
           Hello:
             !Transclude World:
-              A: 1
-              B: 2
           Foo:
             !Transclude X:
     -
       Name: Resource1
       Files:
         "assemble.yml": |
-          !Assembly World:
-            C: 3
-            D: 4
+          !Assembly World: A
     -
       Name: Resource2
       Files:
         "assemble.yml": |
-          - !Assembly World:
-              E: 5
-              F: 6
-          - !Assembly X:
-              G: 7
+          - !Assembly X: B
   OutputArtifact:
     Name: Output
     Files:
       "assemble.yml": |
-        Hello:
-          A: 1
-          B: 2
-          C: 3
-          D: 4
-          E: 5
-          F: 6
-        Foo:
-          G: 7
+        Hello: A
+        Foo: B
 ...

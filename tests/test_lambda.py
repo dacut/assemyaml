@@ -29,12 +29,10 @@ log = getLogger("test_lambda")
 class TestLambda(TestCase):
     def setUp(self):
         self.bucket_name = "codepipeline-us-west-2-00000000000"
-        #self.bucket_name = "cuthbert-dbr"
         self.pipeline_name = "hello"
         self.boto3 = Boto3Session(region_name="us-west-2")
         for logname in ("botocore", "s3transfer"):
             getLogger(logname).setLevel(WARNING)
-
 
     def artifact_dict(self, artifact_name, key):
         """
@@ -167,12 +165,7 @@ class TestLambda(TestCase):
 
         with ZipFile(StringIO(result_zip), "r") as zf:
             with zf.open(output_filename, "r") as fd:
-                data = fd.read()
-                print("data from %s:" % output_filename)
-                print(data)
-                print("---")
-
-                result = yaml_load(data)
+                result = yaml_load(fd)
 
         self.assertEquals(result, expected_content)
 

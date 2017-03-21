@@ -8,7 +8,7 @@ from .types import AssemblyPoint, TranscludePoint
 
 
 NoneType = type(None)
-log = getLogger("assemyaml.assemble")
+log = getLogger("assemyaml.transclude")
 
 
 def transclude_template(stream, assemblies, local_tags=True):
@@ -60,50 +60,47 @@ def transclude(node, assemblies):
         value = node[key]
         trans_name, trans_value = get_transclude(value)
         if trans_name is not None:
-            asy_value = assemblies.get(trans_name)
+            existing_value = assemblies.get(trans_name)
+            log.debug("trans_name=%s trans_value=%s existing_value=%s",
+                      trans_name, trans_value, existing_value)
+
             # Merge the assembly value with the transcluded value.
-            if isinstance(asy_value, (NoneType, LocatableNull)):
-                value = trans_value
-            if isinstance(asy_value, list):
-                if isinstance(trans_value, list):
-                    value = trans_value + asy_value
-                elif isinstance(trans_value, (NoneType, LocatableNull)):
-                    value = asy_value
-                else:
+            if isinstance(trans_value, (NoneType, LocatableNull)):
+                value = existing_value
+            elif isinstance(existing_value, list):
+                if not isinstance(trans_value, list):
                     raise TranscludeError(
                         "Mismatched assembly types for %s: list at" %
                         trans_name,
-                        getattr(asy_value, "start_mark", None),
+                        getattr(existing_value, "start_mark", None),
                         "%s at" % trans_value.py_type.__name__,
                         getattr(trans_value, "start_mark", None))
-            elif isinstance(asy_value, dict):
-                if isinstance(trans_value, dict):
-                    value = asy_value.copy()
-                    for dkey in trans_value:
-                        if dkey in asy_value:
-                            raise TranscludeError(
-                                ("Duplicate key %r for assembly %s: first "
-                                 "occurence at") % (key, trans_name),
-                                getattr(asy_value, "start_mark", None),
-                                "second occurrence at",
-                                getattr(trans_value, "start_mark", None))
-                        value[dkey] = trans_value[dkey]
-                elif trans_value is None:
-                    value = asy_value
-                else:
+
+                value = trans_value + existing_value
+            elif isinstance(existing_value, dict):
+                if not isinstance(trans_value, dict):
                     raise TranscludeError(
                         "Mismatched assembly types for %s: dict at" %
                         trans_name,
-                        getattr(asy_value, "start_mark", None),
+                        getattr(existing_value, "start_mark", None),
                         "%s at" % trans_value.py_type.__name__,
                         getattr(trans_value, "start_mark", None))
-            elif asy_value is None:
-                value = trans_value
-            elif trans_value is not None:
+
+                value = existing_value.copy()
+                for dkey in trans_value:
+                    if dkey in existing_value:
+                        raise TranscludeError(
+                            ("Duplicate key %r for assembly %s: first "
+                             "occurrence at") % (dkey, trans_name),
+                            getattr(existing_value, "start_mark", None),
+                            "second occurrence at",
+                            getattr(trans_value, "start_mark", None))
+                    value[dkey] = trans_value[dkey]
+            elif not isinstance(existing_value, (NoneType, LocatableNull)):
                 raise TranscludeError(
-                    "Cannot set value for transclude %s: %s at" % (
-                        trans_name, asy_value.py_type.__name__),
-                    getattr(asy_value, "start_mark", None),
+                    "Cannot set value for assembly %s: %s at" % (
+                        trans_name, existing_value.py_type.__name__),
+                    getattr(existing_value, "start_mark", None),
                     "%s at" % trans_value.py_type.__name__,
                     getattr(trans_value, "start_mark", None))
 
@@ -147,14 +144,12 @@ def get_transclude(node):
     if len(node) != 1:
         raise TranscludeError(
             None, None, "Transclude must be a single-entry mapping",
-            getattr(node, "start_mark", None),
-            getattr(node, "end_mark", None))
+            getattr(node, "start_mark", None))
 
     # Rule 2: Transclude name must be a scalar.
-    if isinstance(transclude_key.name, (list, dict, tuple)):
+    if isinstance(transclude_key.name, (list, dict, tuple)):  # pragma: nocover
         raise TranscludeError(
             None, None, "Transclude name must be a scalar",
-            getattr(transclude_key.name, "start_mark", None),
-            getattr(transclude_key.name, "end_mark", None))
+            getattr(transclude_key.name, "start_mark", None))
 
     return (transclude_key.name, node[transclude_key])

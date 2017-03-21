@@ -36,18 +36,14 @@ class InputArtifact(object):
         return
 
     def __del__(self):
-        try:
-            for file in self.extracted_files:
-                file.close()
+        for file in self.extracted_files:
+            file.close()
 
-            if self.zip is not None:
-                self.zip.close()
+        if self.zip is not None:
+            self.zip.close()
 
-            if self.artifact_file is not None:
-                self.artifact_file.close()
-        except Exception as e:
-            print_exc()
-            raise
+        if self.artifact_file is not None:
+            self.artifact_file.close()
 
         return
 
@@ -139,9 +135,11 @@ class CodePipelineJob(object):
 
         # CodePipeline itself should be called using the default client.
         # We can't run this during unit tests -- Moto doesn't support it yet.
-        self.skip_codepipeline = (
+        skip_codepipeline = (
             event.get("TestParameters", {}).get("SkipCodePipeline"))
-        if not self.skip_codepipeline: # pragma: no cover
+        if skip_codepipeline:  # pragma: no cover
+            self.codepipeline = None
+        else:
             self.codepipeline = boto3.client("codepipeline")
 
         # Parameters for running the transclusion
@@ -297,9 +295,6 @@ class CodePipelineJob(object):
         output_zip = ZipFile(output_binary, "a")
         self.output_temp.seek(0)
         content = self.output_temp.read()
-        print("Zipping output into %s:" % self.output_filename)
-        print(content)
-        print("----")
         output_zip.writestr(self.output_filename, content)
         output_zip.close()
 
@@ -318,14 +313,14 @@ class CodePipelineJob(object):
     def send_success(self):
         log.info("Notifying CodePipeline: put_job_success_result(%r)",
                  self.cp_job_id)
-        if not self.skip_codepipeline: # pragma: no cover
+        if self.codepipeline:  # pragma: no cover
             self.codepipeline.put_job_success_result(jobId=self.cp_job_id)
         return
 
     def send_failure(self, message):
         log.info("Notifying CodePipeline: put_job_failure_result("
                  "%r, message=%r)", self.cp_job_id, message)
-        if not self.skip_codepipeline: # pragma: no cover
+        if self.codepipeline:  # pragma: no cover
             self.codepipeline.put_job_failure_result(
                 jobId=self.cp_job_id, failureDetails={
                     "type": "JobFailed",

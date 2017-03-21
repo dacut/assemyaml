@@ -57,10 +57,9 @@ def get_assemblies(node, assemblies):
             elif isinstance(existing_value, list):
                 if not isinstance(asy_value, list):
                     raise AssemblyError(
-                        "Mismatched assembly types for %s: list %s at" % (asy_name, existing_value),
-                        getattr(existing_value, "start_mark",
-                        ),
-                        "%s %s at" % (asy_value.py_type.__name__, asy_value),
+                        "Mismatched assembly types for %s: list at" % asy_name,
+                        getattr(existing_value, "start_mark", None),
+                        "%s at" % asy_value.py_type.__name__,
                         getattr(asy_value, "start_mark", None))
                 existing_value.extend(asy_value)
             elif isinstance(existing_value, dict):
@@ -75,7 +74,7 @@ def get_assemblies(node, assemblies):
                     if dkey in existing_value:
                         raise AssemblyError(
                             ("Duplicate key %r for assembly %s: first "
-                             "occurence at") % (dkey, asy_name),
+                             "occurrence at") % (dkey, asy_name),
                             getattr(existing_value, "start_mark", None),
                             "second occurrence at",
                             getattr(asy_value, "start_mark", None))
@@ -129,14 +128,13 @@ def get_assembly(node):
     if len(node) != 1:
         raise AssemblyError(
             None, None, "Assembly must be a single-entry mapping",
-            getattr(node, "start_mark", None),
-            getattr(node, "end_mark", None))
+            getattr(node, "start_mark", None))
 
     # Rule 2: Assembly name must be a scalar.
-    if isinstance(assembly_key.name, (list, dict, tuple)):
+    # Note: PyYAML is currently not capable of producing these
+    if isinstance(assembly_key.name, (list, dict, tuple)):  # pragma: nocover
         raise AssemblyError(
             None, None, "Assembly name must be a scalar",
-            getattr(assembly_key.name, "start_mark", None),
-            getattr(assembly_key.name, "end_mark", None))
+            getattr(assembly_key.name, "start_mark", None))
 
     return (assembly_key.name, node[assembly_key])
