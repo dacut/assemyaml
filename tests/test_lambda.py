@@ -158,7 +158,14 @@ class TestLambda(TestCase):
         output_artifact = self.artifact_dict(
             output_artifact_name, output_artifact_key)
 
-        event = self.lambda_event(input_artifacts, output_artifact)
+        event = self.lambda_event(
+            input_artifacts=input_artifacts,
+            output_artifact=output_artifact,
+            template_document=doc.get("TemplateDocument"),
+            resource_documents=doc.get("ResourceDocuments"),
+            default_input_filename=doc.get("DefaultInputFilename"),
+            local_tags=doc.get("LocalTags"))
+
 
         codepipeline_handler(event, None)
         result_obj = s3.Object(self.bucket_name, output_artifact_key)
@@ -221,3 +228,16 @@ class TestLambda(TestCase):
         self.assertIn(
             "Unable to download input artifact 'Input' (s3://" +
             self.bucket_name + "/missing):", str(l))
+
+    def test_bad_artifact_filename(self):
+        event = self.lambda_event(
+            [self.artifact_dict("Input", "missing")],
+            self.artifact_dict("Output", "key"),
+            template_document="qwertyuiop")
+
+        with LogCapture() as l:
+            codepipeline_handler(event, None)
+
+        self.assertIn(
+            "Invalid value for TemplateDocument: expected input_artifact::"
+            "filename: qwertyuiop", str(l))

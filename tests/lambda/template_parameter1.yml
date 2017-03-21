@@ -1,0 +1,45 @@
+---
+  InputArtifacts:
+    -
+      Name: Template
+      Files:
+        "myfile.yml": |
+          Hello:
+            - !Transclude World:
+              - A
+              - B
+            - !Transclude Peas:
+        "assemble.yml": |
+          Hello: This is not the file you're looking for.
+    -
+      Name: Resource1
+      Files:
+        "assemble.yml": |
+          - !Assembly World:
+            - C
+            - D
+          - !Assembly Peas:
+            - E
+            - F
+    -
+      Name: Resource2
+      Files:
+        "assemble.yml": |
+          - !Assembly Peas:
+            - G
+            - H
+  OutputArtifact:
+    Name: Output
+    Files:
+      "assemble.yml": |
+        Hello:
+          - - A
+            - B
+            - C
+            - D
+          - - E
+            - F
+            - G
+            - H
+  TemplateDocument: "Template::myfile.yml"
+...

@@ -1,0 +1,49 @@
+---
+  InputArtifacts:
+    -
+      Name: Template
+      Files:
+        "assemble.yml": |
+          Hello:
+            - !Transclude World:
+              - A
+              - B
+            - !Transclude Peas:
+    -
+      Name: Resource1
+      Files:
+        "override.yml": |
+          - !Assembly World:
+            - C
+            - D
+          - !Assembly Peas:
+            - E
+            - F
+        "assemble.yml": |
+          Hello: This is not the file you're looking for.
+    -
+      Name: Resource2
+      Files:
+        "override.yml": |
+          - !Assembly Peas:
+            - G
+            - H
+        "assemble.yml": |
+          Hello: This is not the file you're looking for.
+  OutputArtifact:
+    Name: Output
+    Files:
+      "assemble.yml": |
+        Hello:
+          - - A
+            - B
+            - C
+            - D
+          - - E
+            - F
+            - G
+            - H
+  ResourceDocuments:
+    - "Resource1::override.yml"
+    - "Resource2::override.yml"
+...

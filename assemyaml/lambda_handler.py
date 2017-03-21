@@ -194,7 +194,7 @@ class CodePipelineJob(object):
         # Get the template document name
         td = user_parameters.get("TemplateDocument")
         if td is not None:
-            ia_name, _ = self.check_artifact_name(td, "TemplateDocument")
+            ia_name, _ = self.check_artifact_filename(td, "TemplateDocument")
             seen_artifacts.add(ia_name)
             self.template_document_name = td
 
@@ -207,9 +207,10 @@ class CodePipelineJob(object):
                 rds = [rds]
 
             for rd in rds:
-                ia_name, _ = self.check_artifact_name(rd, "ResourceDocumenets")
+                ia_name, _ = self.check_artifact_filename(
+                    rd, "ResourceDocuments")
                 seen_artifacts.add(ia_name)
-                self.resource_document_names = rd
+                self.resource_document_names.append(rd)
 
         # Do we want local tag support?
         self.local_tags = user_parameters.get("LocalTags", True)
@@ -246,7 +247,7 @@ class CodePipelineJob(object):
             ia_name, filename = split_artifact_filename(doc_name)
         except ValueError:
             raise ValueError(
-                "Invalid value for %s: expected input_artifact::filename: %r" %
+                "Invalid value for %s: expected input_artifact::filename: %s" %
                 (param_type, doc_name))
 
         if ia_name not in self.input_artifacts_by_name:
