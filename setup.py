@@ -22,6 +22,7 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
         'Topic :: Software Development :: Libraries :: Python Modules',
+        'Topic :: Text Processing',
     ],
     keywords=['yaml'],
     url="http://assemyaml.nz/",
