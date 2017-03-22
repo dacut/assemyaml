@@ -8,7 +8,9 @@ COPY . /assemyaml
 WORKDIR /assemyaml
 ENV VIRTUAL_ENV=/venv
 ENV PATH=/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-RUN ./setup.py install
+RUN rm -f /lambda.zip
+RUN cp assemyaml/lambda_handler.py .
+RUN zip -r /lambda.zip assemyaml lambda_handler.py
+RUN pip install -r requirements.txt
 WORKDIR /venv/lib/python2.7/site-packages
-RUN cp Assemyaml*/assemyaml/lambda_handler.py .
 RUN zip -r /lambda.zip . --exclude botocore\* boto3\* setuptools/\* pip/\*
