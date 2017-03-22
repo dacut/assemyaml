@@ -1,5 +1,53 @@
 #!/bin/bash
-docker build -t assemyaml_lambda:latest -f lambda.docker .
-mkdir -p lambda_export
-docker run --rm --volume $PWD/lambda_export:/export assemyaml_lambda cp /lambda.zip /export
-mv lambda_export/lambda.zip .
+usage () {
+  cat 1>&2 <<.EOF
+Usage: lambda-build [--upload <prefix>]
+Build the Lambda zip file, optionally uploading it to the specified S3 prefix.
+.EOF
+}
+
+main () {
+  local upload_location version
+  upload_location=""
+
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --upload )
+      if [[ $# -lt 2 ]]; then
+        echo "Need argument after --upload" 1>&2;
+        usage;
+        exit 2;
+      fi;
+      upload_location="$2";
+      shift 2;;
+
+      --upload=* )
+      upload_location="$(echo $1 | sed -e 's/^--upload=//')";
+      shift 1;;
+
+      * )
+      echo "Unknown argument $1" 1>&2;
+      usage;
+      exit 2;
+    esac;
+  done;
+
+  version=$(grep 'version=' setup.py | sed -e 's/ *version="//' -e 's/", *//')
+  docker build -t assemyaml_lambda:latest -f lambda.docker . || exit 1
+  mkdir -p lambda_export || exit 1
+  docker run --rm --volume $PWD/lambda_export:/export \
+    assemyaml_lambda cp /lambda.zip /export || exit 1
+  mv lambda_export/lambda.zip ./assemyaml-lambda-latest.zip || exit 1
+  cp ./assemyaml-lambda-latest.zip ./assemyaml-lambda-${version}.zip || exit 1
+
+  if [[ ! -z "$upload_location" ]]; then
+    aws s3 cp ./assemyaml-lambda-latest.zip \
+      "$upload_location"/assemyaml-lambda-latest.zip --acl public-read
+    aws s3 cp ./assemyaml-lambda-${version}.zip \
+      "$upload_location"/assemyaml-lambda-${version}.zip --acl public-read
+  fi;
+
+  exit 0
+}
+
+main "$@"
