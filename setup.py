@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="Assemyaml",
-    version="0.2.0",
+    version="0.2.1",
     packages=["assemyaml"],
     entry_points={"console_scripts": ["assemyaml=assemyaml:main"]},
     install_requires=["PyYAML>=3.0", "six>=1.10.0"],

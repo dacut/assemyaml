@@ -74,7 +74,7 @@ class InputArtifact(object):
         bucket = s3Loc["bucketName"]
         key = s3Loc["objectKey"]
 
-        self.artifact_file = NamedTemporaryFile()
+        self.artifact_file = NamedTemporaryFile("w+b")
 
         s3 = self.boto_session.client(
             "s3", config=Config(signature_version="s3v4"))
@@ -100,7 +100,7 @@ class InputArtifact(object):
             self.download()
 
         with self.zip.open(filename) as ifd:
-            ofd = NamedTemporaryFile()
+            ofd = NamedTemporaryFile(mode="w+b")
             while True:
                 data = ifd.read(65536)
                 if not data:
@@ -155,7 +155,7 @@ class CodePipelineJob(object):
         self.resource_documents = []
 
         # Create a named temporary file for the output.
-        self.output_temp = NamedTemporaryFile()
+        self.output_temp = NamedTemporaryFile(mode="w+")
 
         return
 
@@ -301,7 +301,7 @@ class CodePipelineJob(object):
 
     def write_output(self):
         # Create the output ZipFile
-        output_binary = NamedTemporaryFile()
+        output_binary = NamedTemporaryFile(mode="w+b")
         output_zip = ZipFile(output_binary, "a")
         self.output_temp.seek(0)
         content = self.output_temp.read()

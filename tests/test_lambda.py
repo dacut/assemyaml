@@ -8,7 +8,7 @@ from logging import getLogger, WARNING
 from os import listdir
 from os.path import dirname
 from random import randint
-from six import iteritems, next, string_types
+from six import BytesIO, iteritems, next, string_types
 from six.moves import cStringIO as StringIO, range
 from string import ascii_letters, digits
 import sys
@@ -68,7 +68,7 @@ class TestLambda(TestCase):
 
     def create_input_artifact(self, artifact_name, contents):
         # Zip the contents up into an S3 object
-        zip_binary = StringIO()
+        zip_binary = BytesIO()
         with ZipFile(zip_binary, "w") as zip_file:
             for key, value in iteritems(contents):
                 zip_file.writestr(key, value)
@@ -176,9 +176,17 @@ class TestLambda(TestCase):
             default_input_filename=doc.get("DefaultInputFilename"),
             local_tags=doc.get("LocalTags"))
 
+        log.info("Invoking Lambda codepipeline_handler")
         with captured_output() as (out, err):
             with LogCapture() as l:
                 codepipeline_handler(event, None)
+
+        # Redisplay the log records
+        for record in l.records:
+            getLogger(record.name).handle(record)
+
+        log.info("Lambda codepipeline_handler done")
+
 
         expected_errors = doc.get("ExpectedErrors")
         if expected_errors:
@@ -197,7 +205,7 @@ class TestLambda(TestCase):
             result_obj = s3.Object(self.bucket_name, output_artifact_key)
             result_zip = result_obj.get()["Body"].read()
 
-            with ZipFile(StringIO(result_zip), "r") as zf:
+            with ZipFile(BytesIO(result_zip), "r") as zf:
                 with zf.open(output_filename, "r") as fd:
                     result = yaml_load(fd)
 
