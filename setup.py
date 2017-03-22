@@ -24,6 +24,6 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
     keywords=['yaml'],
-    url="https://github.com/dacut/Assemyaml",
+    url="http://assemyaml.nz/",
     zip_safe=False,
 )
