@@ -17,7 +17,7 @@ setup(
     description="Assemble and merge multiple YAML documents",
     license="Apache",
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
