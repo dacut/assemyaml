@@ -2,144 +2,18 @@
 from yaml.constructor import Constructor, ConstructorError
 from yaml.nodes import MappingNode, SequenceNode
 from yaml.representer import Representer
-
-
-class Locatable(object):
-    def _set_marks(self, node):
-        self.start_mark = node.start_mark
-        self.end_mark = node.end_mark
-
-    def copy(self):
-        result = super(Locatable, self).copy()
-        result = type(self)(result)
-        result.start_mark = self.start_mark
-        result.end_mark = self.end_mark
-        return result
-
-    @classmethod
-    def represent(cls, dumper, data):
-        return dumper.represent_data(data.py_type(data))
-
-
-class LocatableNull(Locatable):
-    py_type = type(None)
-
-    def __init__(self, value):
-        super(LocatableNull, self).__init__()
-        return
-
-    def __bool__(self):
-        return False
-    __nonzero__ = __bool__
-
-    def __eq__(self, other):
-        return other is None or isinstance(other, LocatableNull)
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return hash(None)
-
-    def __repr__(self):
-        return "None"
-
-    @classmethod
-    def represent(cls, dumper, data):
-        return dumper.represent_data(None)
+from .types import (
+    Locatable, LocatableBool, LocatableDict, LocatableList, LocatableNull,
+    LocatableProxy, LocatableSet, UnknownLocalTag,
+)
 
 
 Representer.add_representer(LocatableNull, LocatableNull.represent)
-
-
-class LocatableProxy(Locatable):
-    def __init__(self, value, start_mark=None, end_mark=None):
-        super(LocatableProxy, self).__init__()
-        self._proxy_value = value
-        self.start_mark = start_mark
-        self.end_mark = end_mark
-        return
-
-    def __bool__(self):
-        return bool(self._proxy_value)
-    __nonzero__ = __bool__
-
-    def __eq__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value == other._proxy_value
-        else:
-            return self._proxy_value == other
-
-    def __ne__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value != other._proxy_value
-        else:
-            return self._proxy_value != other
-
-    def __lt__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value < other._proxy_value
-        else:
-            return self._proxy_value < other
-
-    def __le__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value <= other._proxy_value
-        else:
-            return self._proxy_value <= other
-
-    def __ge__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value >= other._proxy_value
-        else:
-            return self._proxy_value >= other
-
-    def __gt__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value > other._proxy_value
-        else:
-            return self._proxy_value > other
-
-    def __hash__(self):
-        return hash(self._proxy_value)
-
-    def __repr__(self):
-        return repr(self._proxy_value)
-
-    def __getattr__(self, name):
-        return getattr(self._proxy_value, name)
-
-    def __setattr__(self, name, value):
-        if name in ("_proxy_value", "start_mark", "end_mark"):
-            self.__dict__[name] = value
-        else:
-            setattr(self._proxy_value, name, value)
-
-        return
-
-    def __delattr__(self, name):
-        return delattr(self._proxy_value, name)
-
-    @classmethod
-    def represent(cls, dumper, data):
-        return dumper.represent_data(data._proxy_value)
-
-    def to_json(self):
-        return self._proxy_value
-
-
-LocatableBool = type("LocatableBool", (LocatableProxy,),
-                     {"py_type": bool})
 Representer.add_representer(LocatableBool, LocatableProxy.represent)
-
-LocatableDict = type("LocatableDict", (Locatable, dict), {"py_type": dict})
 Representer.add_representer(LocatableDict, Locatable.represent)
-
-LocatableList = type("LocatableList", (Locatable, list), {"py_type": list})
 Representer.add_representer(LocatableList, Locatable.represent)
-
-LocatableSet = type("LocatableSet", (Locatable, set), {"py_type": set})
 Representer.add_representer(LocatableSet, Locatable.represent)
+Representer.add_representer(UnknownLocalTag, UnknownLocalTag.represent)
 
 
 class LocatableConstructor(Constructor):
@@ -341,4 +215,4 @@ LocatableConstructor.add_constructor(
 
 LocatableConstructor.add_constructor(
     None,
-    LocatableConstructor.construct_undefined)
+    UnknownLocalTag.yaml_constructor)

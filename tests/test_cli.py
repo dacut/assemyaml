@@ -1,7 +1,9 @@
 from __future__ import absolute_import, print_function
 from assemyaml import main
+from assemyaml.types import UnknownLocalTag
 from contextlib import contextmanager
 from json import load as json_load, loads as json_loads
+from logging import getLogger
 from os.path import dirname, exists
 from shutil import rmtree
 from six import string_types
@@ -9,7 +11,10 @@ from six.moves import cStringIO as StringIO
 import sys
 from tempfile import mkdtemp
 from unittest import TestCase
-from yaml import load_all as yaml_load_all
+from yaml import add_constructor, add_representer, load_all as yaml_load_all
+
+
+log = getLogger("test_cli")
 
 
 @contextmanager
@@ -27,6 +32,7 @@ class TestCLI(TestCase):
     def setUp(self):
         self.testdir = dirname(__file__) + "/cli/"
         self.tempdir = mkdtemp()
+        self.maxDiff = 10000
 
     def tearDown(self):
         rmtree(self.tempdir)
@@ -54,18 +60,26 @@ class TestCLI(TestCase):
             args += [self.testdir + template_filename]
 
         args += [self.testdir + r for r in resource_filenames]
+        log.info("Starting CLI with args=%s", args)
         with captured_output() as (out, err):
             result = main(args)
+        log.info("CLI returned with code %d" % result)
 
         out = out.getvalue()
         err = err.getvalue()
 
         sys.stdout.write(out)
         sys.stderr.write(err)
+        sys.stdout.flush()
+        sys.stderr.flush()
+
+        log.debug(err)
 
         self.assertEquals(result, expected_returncode)
 
         if expected_filename is not None:
+            add_constructor(None, UnknownLocalTag.yaml_constructor)
+            add_representer(UnknownLocalTag, UnknownLocalTag.represent)
             if output_filename:
                 with open(output_filename, "r") as fd:
                     if format == "json":
@@ -147,17 +161,21 @@ class TestCLI(TestCase):
             expected_errors=("Warning: multiple documents are not supported "
                              "with JSON output"))
 
-    def test_bad_template(self):
+    def test_unknown_local_tags_template(self):
         self.run_docs(
-            template_filename="bad-template.yml",
-            expected_returncode=1,
-            expected_errors="Error while processing template document")
+            template_filename="unknown-tags-template.yml",
+            expected_returncode=0)
 
         self.run_docs(
-            template_filename="bad-template.yml",
-            resource_filenames=["bad-resource.yml"],
-            expected_returncode=1,
-            expected_errors="Error while processing resource document")
+            template_filename="unknown-tags-template.yml",
+            resource_filenames=["unknown-tags-resource.yml"],
+            expected_returncode=0)
+
+    def test_cloudformation(self):
+        self.run_docs(
+            template_filename="cloudformation-template.yml",
+            expected_filename="cloudformation-expected.yml",
+            expected_returncode=0)
 
     def test_bad_args(self):
         with captured_output() as (out, err):

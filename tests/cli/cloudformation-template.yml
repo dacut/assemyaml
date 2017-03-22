@@ -1,0 +1,159 @@
+# -*- mode: yaml -*-
+# This is a CloudFormation template for building the entire 0div0 stack on a
+# single host. Eventually, the site will be hosted on a proper three-layer
+# architecture, but we're doing this for cost reasons today.
+#
+# There are four containers involved:
+#  - nginx: Routes traffic to the frontend or backend. Listens on ports 80/443.
+#  - 0div0r: The React frontend for rendering HTML. Listens on port 3000.
+#  - 0div0f: The Flask backend for handling business logic. Listens on port 3010.
+#  - mongodb: The database holding all that is.
+#
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Production 0div0 Infrastructure"
+Parameters:
+  !Transclude Parameters:
+    VpcId:
+      Type: AWS::EC2::VPC::Id
+      Description: The VPC to use for launching instances.
+      Default: vpc-84eb13e1
+    InstanceAMI:
+      Type: String
+      Description: The AMI id to use when launching ECS instances.
+      Default: ami-2062ed40
+    KeyName:
+      Type: AWS::EC2::KeyPair::KeyName
+      Description: The SSH keypair to enable access to the instance. If the image mounts an EFS mountpoint for home directories, this might be ignored.
+      Default: lyndie_AWS
+    SecurityGroup:
+      Type: AWS::EC2::SecurityGroup::Id
+      Description: The EC2 security group to assign to the instances.
+      Default: sg-b42b1fcc
+    ZoneId:
+      Type: String
+      Description: The Route 53 hosted zone to update.
+      Default: Z2V2WJIFYAJNUA
+    FrontendDNSName:
+      Type: String
+      Description: The name to use for the frontend.
+      Default: "0div0.com"
+    BackendDNSName:
+      Type: String
+      Description: The name to use for the backend.
+      Default: "backend.0div0.com"
+    ClusterName:
+      Type: String
+      Description: The name to use for the ECS cluster.
+      Default: 0div0-fullstack
+    TaskDefinitionFamily:
+      Type: String
+      Description: The task definition family name.
+      Default: 0div0-fullstack
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: EC2 Instance Parameters
+        Parameters:
+          - VpcId
+          - InstanceAMI
+          - KeyName
+          - SecurityGroup
+      - Label:
+          default: DNS Parameters
+        Parameters:
+          - ZoneId
+          - FrontendDNSName
+          - BackendDNSName
+      - Label:
+          default: Container Parameters
+        Parameters:
+          !Transclude ContainerParameters:
+            - ClusterName
+            - TaskDefinitionFamily
+Resources:
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Ref TaskDefinitionFamily
+      NetworkMode: bridge
+      Volumes:
+        - Name: letsencrypt
+          Host:
+            SourcePath: /etc/letsencrypt
+      ContainerDefinitions:
+        !Transclude Container:
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref ClusterName
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0  # Cost-savings; eventually, we'll want this higher
+        MaximumPercent: 200
+      DesiredCount: 1
+      TaskDefinition: !Ref ECSTaskDefinition
+  ECSFleetSignalHandle: # Allows the instance to signal that it's up.
+    Type: AWS::CloudFormation::WaitConditionHandle
+  ECSFleetCreated: # Signalled when the instance is alive.
+    Type: AWS::CloudFormation::WaitCondition
+    DependsOn:
+      - ECSFleet
+    Properties:
+      Count: 1
+      Handle: !Ref ECSFleetSignalHandle
+      Timeout: 3600
+  ECSFleet:
+    Type: AWS::EC2::SpotFleet
+    DependsOn:
+      - ECSCluster
+    Properties:
+      SpotFleetRequestConfigData:
+        AllocationStrategy: lowestPrice
+        ExcessCapacityTerminationPolicy: default
+        IamFleetRole: !GetAtt SpotFleetRole.Arn
+        SpotPrice: "0.05"
+        TargetCapacity: 1
+        TerminateInstancesWithExpiration: false
+        LaunchSpecifications:
+  SpotFleetRole:
+    # This allows SpotFleet to make API calls on our behalf.
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ["spotfleet.amazonaws.com"]
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetRole"
+  ECSInstanceRole:
+    # This allows the ECS container agent on the ECS instance to make API calls on our behalf.
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ["ec2.amazonaws.com"]
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+        - "arn:aws:iam::aws:policy/AmazonRoute53FullAccess"
+  ECSInstanceProfile:
+    # The EC2 instance needs a profile to attach to.
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref ECSInstanceRole
+Outputs:
+  IPAddress:
+    Description: Public IPv4 address
+    Value: !GetAtt ECSFleetCreated.Data
