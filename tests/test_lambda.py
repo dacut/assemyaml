@@ -86,7 +86,7 @@ class TestLambda(TestCase):
     def lambda_event(self, input_artifacts, output_artifact,
                      template_document=None,
                      resource_documents=None, default_input_filename=None,
-                     local_tags=None):
+                     local_tags=None, format=None):
 
         user_params = {}
         if template_document is not None:
@@ -100,6 +100,9 @@ class TestLambda(TestCase):
 
         if local_tags is not None:
             user_params["LocalTags"] = local_tags
+
+        if format is not None:
+            user_params["Format"] = format
 
         action_cfg = {"configuration": {"FunctionName": "Lambda"}}
         if user_params:
@@ -276,4 +279,17 @@ class TestLambda(TestCase):
 
         self.assertIn(
             "Invalid value for TemplateDocument: unknown input artifact Foo",
+            str(l))
+
+    def test_invalid_format(self):
+        event = self.lambda_event(
+            [],
+            self.artifact_dict("Output", "key"),
+            format="qwerty")
+
+        with LogCapture() as l:
+            codepipeline_handler(event, None)
+
+        self.assertIn(
+            "Invalid output format 'qwerty': valid types are 'json' and 'yaml'",
             str(l))

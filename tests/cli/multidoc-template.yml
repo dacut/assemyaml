@@ -1,0 +1,10 @@
+---
+  - !Transclude Hello:
+  - X
+  - Y
+...
+---
+  - !Transclude World:
+  - 1
+  - 2
+...

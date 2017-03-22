@@ -18,7 +18,7 @@ class TAPoint(Locatable):
         return cls(loader.construct_scalar(node))
 
     @classmethod
-    def represent(cls, dumper, data):
+    def represent(cls, dumper, data):  # pragma: nocover
         dumper.represent_str("ERROR: Attempted to stream out %s" %
                              cls.__name__)
 

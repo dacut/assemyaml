@@ -124,6 +124,9 @@ class LocatableProxy(Locatable):
     def represent(cls, dumper, data):
         return dumper.represent_data(data._proxy_value)
 
+    def to_json(self):
+        return self._proxy_value
+
 
 LocatableBool = type("LocatableBool", (LocatableProxy,),
                      {"py_type": bool})

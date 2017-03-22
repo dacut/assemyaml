@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 from assemyaml import main
 from contextlib import contextmanager
+from json import load as json_load, loads as json_loads
 from os.path import dirname, exists
 from shutil import rmtree
 from six import string_types
@@ -8,7 +9,7 @@ from six.moves import cStringIO as StringIO
 import sys
 from tempfile import mkdtemp
 from unittest import TestCase
-from yaml import load as yaml_load
+from yaml import load_all as yaml_load_all
 
 
 @contextmanager
@@ -33,7 +34,8 @@ class TestCLI(TestCase):
     def run_docs(self, template_filename, resource_filenames=(),
                  expected_returncode=0, expected_filename=None,
                  expected_errors=None, template_arg=False, local_tags=True,
-                 output_filename=None, long_parameters=True):
+                 output_filename=None, long_parameters=True,
+                 format=None):
         args = []
 
         if not local_tags:
@@ -41,6 +43,9 @@ class TestCLI(TestCase):
 
         if output_filename is not None:
             args += ["--output" if long_parameters else "-o", output_filename]
+
+        if format is not None:
+            args += ["--format" if long_parameters else "-f", format]
 
         if template_arg:
             args += ["--template" if long_parameters else "-t",
@@ -55,16 +60,29 @@ class TestCLI(TestCase):
         out = out.getvalue()
         err = err.getvalue()
 
+        sys.stdout.write(out)
+        sys.stderr.write(err)
+
         self.assertEquals(result, expected_returncode)
 
         if expected_filename is not None:
             if output_filename:
                 with open(output_filename, "r") as fd:
-                    actual = yaml_load(fd)
+                    if format == "json":
+                        actual = json_load(fd)
+                    else:
+                        actual = list(yaml_load_all(fd))
             else:
-                actual = yaml_load(out)
+                if format == "json":
+                    actual = json_loads(out)
+                else:
+                    actual = list(yaml_load_all(out))
+
             with open(self.testdir + expected_filename, "r") as fd:
-                expected = yaml_load(fd)
+                if format == "json":
+                    expected = json_load(fd)
+                else:
+                    expected = list(yaml_load_all(fd))
 
             self.assertEquals(actual, expected)
 
@@ -111,6 +129,24 @@ class TestCLI(TestCase):
             template_arg=True,
             local_tags=False)
 
+    def test_json(self):
+        self.run_docs(
+            template_filename="noset-template.yml",
+            resource_filenames=["noset-resource-1.yml"],
+            expected_filename="noset-expected.json",
+            format="json")
+
+    def test_multidoc(self):
+        self.run_docs(
+            template_filename="multidoc-template.yml",
+            expected_filename="multidoc-expected.yml")
+        self.run_docs(
+            template_filename="multidoc-template.yml",
+            expected_filename="multidoc-expected.json",
+            format="json",
+            expected_errors=("Warning: multiple documents are not supported "
+                             "with JSON output"))
+
     def test_bad_template(self):
         self.run_docs(
             template_filename="bad-template.yml",
@@ -130,6 +166,15 @@ class TestCLI(TestCase):
         self.assertEquals(result, 2)
         err = err.getvalue()
         self.assertIn("option -x not recognized", err)
+        self.assertIn("Usage:", err)
+
+    def test_bad_format(self):
+        with captured_output() as (out, err):
+            result = main(["-f", "qwerty"])
+
+        self.assertEquals(result, 2)
+        err = err.getvalue()
+        self.assertIn("Invalid output format 'qwerty': valid types are", err)
         self.assertIn("Usage:", err)
 
     def test_help(self):

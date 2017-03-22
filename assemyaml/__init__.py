@@ -1,19 +1,22 @@
 #!/usr/bin/env python
 from __future__ import absolute_import, print_function
 from .assemble import record_assemblies
+from .constructor import LocatableNull, LocatableProxy
 from getopt import getopt, GetoptError
+from json import dump as json_dump
 from os.path import basename
+from six import iteritems
 import sys
 from sys import argv, exit as sys_exit
 from .transclude import transclude_template
-from yaml import dump_all
+from yaml import dump_all as yaml_dump_all
 from yaml.error import YAMLError
 
 # NOTE: We print to sys.stderr and do NOT do a "from sys import stderr" and
 # print to the imported stderr so we can do unit testing on error messages.
 
 
-def run(template_fd, resource_fds, output_fd, local_tags):
+def run(template_fd, resource_fds, output_fd, local_tags, format="yaml"):
     assemblies = {}
     for fd in resource_fds:
         try:
@@ -32,12 +35,34 @@ def run(template_fd, resource_fds, output_fd, local_tags):
         print(str(e), file=sys.stderr)
         return 1
 
-    dump_all(docs, output_fd)
+    if format == "json":
+        if len(docs) > 1:
+            print("Warning: multiple documents are not supported with JSON "
+                  "output; only the first document will be written.",
+                  file=sys.stderr)
+        json_dump(json_unwrap(docs[0]), output_fd)
+    else:
+        yaml_dump_all(docs, output_fd)
 
     return 0
 
 
+def json_unwrap(obj):
+    if isinstance(obj, LocatableProxy):
+        obj = obj._proxy_value
+    elif isinstance(obj, LocatableNull):
+        obj = None
+
+    if isinstance(obj, list):
+        return [json_unwrap(el) for el in obj]
+    elif isinstance(obj, dict):
+        return {json_unwrap(k): json_unwrap(v) for k, v in iteritems(obj)}
+    else:
+        return obj
+
+
 def main(args=None):
+    format = "yaml"
     template_filename = None
     local_tags = True
     output = sys.stdout
@@ -47,14 +72,22 @@ def main(args=None):
 
     try:
         opts, filenames = getopt(
-            args, "hlo:t:", ["help", "no-local-tag", "output=", "template="])
+            args, "f:hlo:t:", ["format=", "help", "no-local-tag", "output=",
+                               "template="])
     except GetoptError as e:
         print(str(e), file=sys.stderr)
         usage()
         return 2
 
     for opt, val in opts:
-        if opt in ("-h", "--help",):
+        if opt in ("-f", "--format",):
+            if val not in ("json", "yaml",):
+                print("Invalid output format '%s': valid types are 'json' and "
+                      "'yaml'" % val, file=sys.stderr)
+                usage()
+                return 2
+            format = val
+        elif opt in ("-h", "--help",):
             usage(sys.stdout)
             return 0
         elif opt in ("-l", "--no-local-tag",):
@@ -93,7 +126,7 @@ def main(args=None):
                   file=sys.stderr)
             return 1
 
-    result = run(template_fd, resource_fds, output, local_tags)
+    result = run(template_fd, resource_fds, output, local_tags, format)
 
     template_fd.close()
     for fd in resource_fds:

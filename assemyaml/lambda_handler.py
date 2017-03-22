@@ -148,6 +148,7 @@ class CodePipelineJob(object):
         self.template_document_name = None
         self.resource_document_names = []
         self.local_tags = True
+        self.format = "yaml"
 
         # File objects for the template and resources
         self.template_document = None
@@ -216,6 +217,13 @@ class CodePipelineJob(object):
 
         # Do we want local tag support?
         self.local_tags = user_parameters.get("LocalTags", True)
+
+        # What format should we use for the output?
+        self.format = user_parameters.get("Format", "yaml")
+        if self.format not in ("json", "yaml",):
+            raise ValueError(
+                "Invalid output format '%s': valid types are 'json' and "
+                "'yaml'" % self.format)
 
         # Name of the output file
         self.output_filename = user_parameters.get(
