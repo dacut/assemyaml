@@ -168,6 +168,15 @@ Options:
 
 ## CodePipeline/Lambda Usage
 
+First, create a Lambda function from the Assemyaml ZIP file. Here are three ways of getting the ZIP file:
+* Upload a named-version of Assemyaml from S3: https://s3.amazonaws.com/assemyaml.nz/assemyaml-lambda-0.10.zip for example.
+* Upload the latest version of Assemyaml from S3: https://s3.amazonaws.com/assemyaml.nz/assemyaml-lambda-latest.zip
+* Build your own version locally (you'll need Docker):
+* * `git clone https://github.com/dacut/assemyaml.git`
+* * `cd assemyaml`
+* * `./lambda-build`
+* * You'll have a ZIP file named `lambda.zip` in the current directory.
+
 When used as a [Lambda invocation stage in CodePipeline](http://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html), UserParameters is a JSON object with the following syntax:
 <pre lang="json">{
     "TemplateDocument": "<em>input-artifact</em>::<em>filename</em>",
