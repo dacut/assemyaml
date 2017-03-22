@@ -162,6 +162,7 @@ Hello:
 <code>assemyaml [options] --template <em>template-document</em> <em>resource-documents</em>...</code>
 
 Options:
+* <code>--format json|yaml</code> - Write output in this format. (Only YAML is supported on input.)
 * <code>--no-local-tag</code> - Ignore <code>!Transclude</code> and <code>!Assembly</code>
   local tags and use global tags only.
 * <code>--output <em>filename</em></code> - Write output to <em>filename</em> instead of stdout.
@@ -169,7 +170,7 @@ Options:
 ## CodePipeline/Lambda Usage
 
 First, create a Lambda function from the Assemyaml ZIP file. Here are three ways of getting the ZIP file:
-* Upload a named-version of Assemyaml from S3: https://s3.amazonaws.com/assemyaml.nz/assemyaml-lambda-0.10.zip for example.
+* Upload a named-version of Assemyaml from S3: https://s3.amazonaws.com/assemyaml.nz/assemyaml-lambda-0.2.1.zip for example.
 * Upload the latest version of Assemyaml from S3: https://s3.amazonaws.com/assemyaml.nz/assemyaml-lambda-latest.zip
 * Build your own version locally (you'll need Docker):
 * * `git clone https://github.com/dacut/assemyaml.git`
@@ -178,12 +179,13 @@ First, create a Lambda function from the Assemyaml ZIP file. Here are three ways
 * * You'll have a ZIP file named `lambda.zip` in the current directory.
 
 When used as a [Lambda invocation stage in CodePipeline](http://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html), UserParameters is a JSON object with the following syntax:
-<pre lang="json">{
+<pre>{
     "TemplateDocument": "<em>input-artifact</em>::<em>filename</em>",
     "ResourceDocuments": ["<em>input-artifact</em>::<em>filename</em>", ...],
     "DefaultInputFilename": "<em>filename</em>",
     "OutputFilename": "<em>filename</em>",
-    "LocalTag": true|false
+    "LocalTag": true|false,
+    "Format": "yaml|json"
 }</pre>
 
 All parameters are optional.
@@ -197,6 +199,8 @@ The `DefaultInputFilename` key is used for an input artifact filename if an inpu
 `OutputFilename` specifies the filename to write in the output artifact. It defaults to `assemble.yml`.
 
 `LocalTag` specifies whether the `!Transclude` and `!Assembly` local tags are allowed. It defaults to true.
+
+`Format` specifies the output template format. It defaults to `yaml`.
 
 If `TemplateDocument` or `ResourceDocument` is not specified, the following behavior applies:
 
