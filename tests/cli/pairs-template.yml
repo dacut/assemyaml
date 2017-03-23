@@ -1,0 +1,5 @@
+Hello:
+  !Transclude World: !!pairs
+    - A: 1
+    - A: 2
+    - B: 3

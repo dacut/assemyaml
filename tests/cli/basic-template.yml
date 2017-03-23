@@ -10,5 +10,7 @@
     ? A
     ? B
     ? C
+- WithinMapping:
+    !Transclude WithinMapping:
 - !Transclude Empty:
     - 1

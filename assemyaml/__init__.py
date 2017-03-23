@@ -1,19 +1,22 @@
 #!/usr/bin/env python
 from __future__ import absolute_import, print_function
 from .assemble import record_assemblies
-from .constructor import LocatableNull, LocatableProxy
 from getopt import getopt, GetoptError
 from json import dump as json_dump
+from logging import basicConfig, getLogger
 from os.path import basename
-from six import iteritems
 import sys
 from sys import argv, exit as sys_exit
 from .transclude import transclude_template
-from yaml import dump_all as yaml_dump_all
+from yaml import serialize_all as yaml_serialize_all
+from yaml.constructor import SafeConstructor
+from yaml.dumper import SafeDumper
 from yaml.error import YAMLError
 
 # NOTE: We print to sys.stderr and do NOT do a "from sys import stderr" and
 # print to the imported stderr so we can do unit testing on error messages.
+
+log = getLogger("assemyaml")
 
 
 def run(template_fd, resource_fds, output_fd, local_tags, format="yaml"):
@@ -22,43 +25,31 @@ def run(template_fd, resource_fds, output_fd, local_tags, format="yaml"):
         try:
             record_assemblies(fd, assemblies, local_tags)
         except YAMLError as e:
-            print("Error while processing resource document %s:" %
-                  getattr(fd, "filename", "<input>"), file=sys.stderr)
-            print(str(e), file=sys.stderr)
+            log.error("While processing resource document %s:",
+                      getattr(fd, "filename", "<input>"))
+            log.error("%s", str(e))
             return 1
 
     try:
         docs = transclude_template(template_fd, assemblies, local_tags)
     except YAMLError as e:
-        print("Error while processing template document %s:" %
-              getattr(template_fd, "filename", "<input>"), file=sys.stderr)
-        print(str(e), file=sys.stderr)
+        log.error("While processing template document %s:",
+                  getattr(template_fd, "filename", "<input>"))
+        log.error("%s", str(e))
         return 1
 
     if format == "json":
         if len(docs) > 1:
-            print("Warning: multiple documents are not supported with JSON "
-                  "output; only the first document will be written.",
-                  file=sys.stderr)
-        json_dump(json_unwrap(docs[0]), output_fd)
+            log.warning("Multiple documents are not supported with JSON "
+                        "output; only the first document will be written.")
+
+        constructor = SafeConstructor()
+        pyobjs = constructor.construct_document(docs[0])
+        json_dump(pyobjs, output_fd)
     else:
-        yaml_dump_all(docs, output_fd)
+        yaml_serialize_all(docs, stream=output_fd, Dumper=SafeDumper)
 
     return 0
-
-
-def json_unwrap(obj):
-    if isinstance(obj, LocatableProxy):
-        obj = obj._proxy_value
-    elif isinstance(obj, LocatableNull):
-        obj = None
-
-    if isinstance(obj, list):
-        return [json_unwrap(el) for el in obj]
-    elif isinstance(obj, dict):
-        return {json_unwrap(k): json_unwrap(v) for k, v in iteritems(obj)}
-    else:
-        return obj
 
 
 def main(args=None):
@@ -66,6 +57,8 @@ def main(args=None):
     template_filename = None
     local_tags = True
     output = sys.stdout
+
+    basicConfig(stream=sys.stderr, format="%(levelname)s %(message)s")
 
     if args is None:  # pragma: nocover
         args = argv[1:]
@@ -75,15 +68,15 @@ def main(args=None):
             args, "f:hlo:t:", ["format=", "help", "no-local-tag", "output=",
                                "template="])
     except GetoptError as e:
-        print(str(e), file=sys.stderr)
+        log.error("%s", e)
         usage()
         return 2
 
     for opt, val in opts:
         if opt in ("-f", "--format",):
             if val not in ("json", "yaml",):
-                print("Invalid output format '%s': valid types are 'json' and "
-                      "'yaml'" % val, file=sys.stderr)
+                log.error("Invalid output format '%s': valid types are 'json' "
+                          "and 'yaml'", val)
                 usage()
                 return 2
             format = val
@@ -96,15 +89,14 @@ def main(args=None):
             try:
                 output = open(val, "w")
             except IOError as e:
-                print("Unable to open %s for writing: %s" % (val, e),
-                      file=sys.stderr)
+                log.error("Unable to open %s for writing: %s", val, e)
                 return 1
         elif opt in ("-t", "--template",):
             template_filename = val
 
     if template_filename is None:
         if len(filenames) == 0:
-            print("Missing template filename", file=sys.stderr)
+            log.error("Missing template filename")
             usage()
             return 2
         template_filename = filenames[0]
@@ -113,8 +105,7 @@ def main(args=None):
     try:
         template_fd = open(template_filename, "r")
     except IOError as e:
-        print("Unable to open %s for reading: %s" % (template_filename, e),
-              file=sys.stderr)
+        log.error("Unable to open %s for reading: %s", template_filename, e)
         return 1
 
     resource_fds = []
@@ -122,8 +113,7 @@ def main(args=None):
         try:
             resource_fds.append(open(filename, "r"))
         except IOError as e:
-            print("Unable to open %s for reading: %s" % (filename, e),
-                  file=sys.stderr)
+            log.error("Unable to open %s for reading: %s", filename, e)
             return 1
 
     result = run(template_fd, resource_fds, output, local_tags, format)

@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 from assemyaml import main
-from assemyaml.types import UnknownLocalTag
+from assemyaml.types import nodes_equal
 from contextlib import contextmanager
 from json import load as json_load, loads as json_loads
 from logging import getLogger
@@ -10,8 +10,9 @@ from six import string_types
 from six.moves import cStringIO as StringIO
 import sys
 from tempfile import mkdtemp
+from testfixtures import LogCapture
 from unittest import TestCase
-from yaml import add_constructor, add_representer, load_all as yaml_load_all
+from yaml import compose_all as yaml_compose_all
 
 
 log = getLogger("test_cli")
@@ -61,51 +62,60 @@ class TestCLI(TestCase):
 
         args += [self.testdir + r for r in resource_filenames]
         log.info("Starting CLI with args=%s", args)
-        with captured_output() as (out, err):
-            result = main(args)
+
+        with LogCapture() as log_capture:
+            with captured_output() as (out, err):
+                result = main(args)
         log.info("CLI returned with code %d" % result)
 
         out = out.getvalue()
         err = err.getvalue()
 
-        sys.stdout.write(out)
-        sys.stderr.write(err)
-        sys.stdout.flush()
-        sys.stderr.flush()
+        if out:
+            log.debug("stdout: %s", out)
+        if err:
+            log.debug("stderr: %s", err)
 
-        log.debug(err)
+        # Redisplay the log records
+        for record in log_capture.records:
+            getLogger(record.name).handle(record)
 
         self.assertEquals(result, expected_returncode)
 
         if expected_filename is not None:
-            add_constructor(None, UnknownLocalTag.yaml_constructor)
-            add_representer(UnknownLocalTag, UnknownLocalTag.represent)
+            if format == "json":
+                load = json_load
+                load_str = json_loads
+            else:
+                load = load_str = yaml_compose_all
+
             if output_filename:
                 with open(output_filename, "r") as fd:
-                    if format == "json":
-                        actual = json_load(fd)
-                    else:
-                        actual = list(yaml_load_all(fd))
+                    actual = list(load(fd))
             else:
-                if format == "json":
-                    actual = json_loads(out)
-                else:
-                    actual = list(yaml_load_all(out))
+                actual = list(load_str(out))
 
             with open(self.testdir + expected_filename, "r") as fd:
+                expected = list(load(fd))
+
+            for a_el, e_el in zip(actual, expected):
                 if format == "json":
-                    expected = json_load(fd)
+                    self.assertEqual(a_el, e_el)
                 else:
-                    expected = list(yaml_load_all(fd))
+                    try:
+                        self.assertTrue(nodes_equal(a_el, e_el))
+                    except:
+                        log.error("actual=%s", a_el)
+                        log.error("expect=%s", e_el)
+                        raise
 
-            self.assertEquals(actual, expected)
-
+        log_capture = str(log_capture)
         if expected_errors is not None:
             if isinstance(expected_errors, string_types):
-                self.assertIn(expected_errors, err)
+                self.assertIn(expected_errors, log_capture)
             else:
                 for error in expected_errors:
-                    self.assertIn(error, err)
+                    self.assertIn(error, log_capture)
         return
 
     def test_basic(self):
@@ -158,8 +168,14 @@ class TestCLI(TestCase):
             template_filename="multidoc-template.yml",
             expected_filename="multidoc-expected.json",
             format="json",
-            expected_errors=("Warning: multiple documents are not supported "
-                             "with JSON output"))
+            expected_errors=("Multiple documents are not supported with JSON "
+                             "output"))
+
+    def test_pairs(self):
+        self.run_docs(
+            template_filename="pairs-template.yml",
+            resource_filenames=["pairs-resource-1.yml"],
+            expected_filename="pairs-expected.yml")
 
     def test_unknown_local_tags_template(self):
         self.run_docs(
@@ -177,22 +193,38 @@ class TestCLI(TestCase):
             expected_filename="cloudformation-expected.yml",
             expected_returncode=0)
 
+    def test_sequence_assembly_name(self):
+        self.run_docs(
+            template_filename="sequence-assembly-name.yml",
+            expected_returncode=1,
+            expected_errors="Assembly name must be a scalar")
+
+    def test_sequence_transclude_name(self):
+        self.run_docs(
+            template_filename="sequence-transclude-name.yml",
+            expected_returncode=1,
+            expected_errors="Transclude name must be a scalar")
+
     def test_bad_args(self):
-        with captured_output() as (out, err):
-            result = main(["-x"])
+        with LogCapture() as l:
+            with captured_output() as (out, err):
+                result = main(["-x"])
 
         self.assertEquals(result, 2)
+        l = str(l)
         err = err.getvalue()
-        self.assertIn("option -x not recognized", err)
+        self.assertIn("option -x not recognized", l)
         self.assertIn("Usage:", err)
 
     def test_bad_format(self):
-        with captured_output() as (out, err):
-            result = main(["-f", "qwerty"])
+        with LogCapture() as l:
+            with captured_output() as (out, err):
+                result = main(["-f", "qwerty"])
 
         self.assertEquals(result, 2)
+        l = str(l)
         err = err.getvalue()
-        self.assertIn("Invalid output format 'qwerty': valid types are", err)
+        self.assertIn("Invalid output format 'qwerty': valid types are", l)
         self.assertIn("Usage:", err)
 
     def test_help(self):
@@ -225,10 +257,12 @@ class TestCLI(TestCase):
             expected_errors=("Unable to open", "for reading:"))
 
     def test_no_args(self):
-        with captured_output() as (out, err):
-            result = main([])
+        with LogCapture() as l:
+            with captured_output() as (out, err):
+                result = main([])
 
         self.assertEquals(result, 2)
+        l = str(l)
         err = err.getvalue()
-        self.assertIn("Missing template filename", err)
+        self.assertIn("Missing template filename", l)
         self.assertIn("Usage:", err)

@@ -142,6 +142,8 @@ class TestLambda(TestCase):
         bucket = s3.Bucket(self.bucket_name)
         bucket.create()
 
+        filename = dirname(__file__) + "/lambda/" + filename
+
         with open(filename, "r") as fd:
             log.info("Running Lambda test on %s" % filename)
             doc = yaml_load(fd)
@@ -211,13 +213,44 @@ class TestLambda(TestCase):
 
             self.assertEquals(result, expected_content)
 
-    def test_documents(self):
-        directory = dirname(__file__) + "/lambda"
-        for filename in listdir(directory):
-            if not filename.endswith(".yml"):
-                continue
+    def test_lambda_basic_transclude(self):
+        self.run_doc("lambda_basic_transclude.yml")
 
-            self.run_doc(directory + "/" + filename)
+    def test_bad_template(self):
+        self.run_doc("bad_template.yml")
+
+    def test_no_template(self):
+        self.run_doc("no_template.yml")
+
+    def test_template_parameter1(self):
+        self.run_doc("template_parameter1.yml")
+
+    def test_template_parameter2(self):
+        self.run_doc("template_parameter2.yml")
+
+    def test_template_parameter3(self):
+        self.run_doc("template_parameter2.yml")
+
+    def test_template_parameter4(self):
+        self.run_doc("template_parameter2.yml")
+
+    def test_dict_transclude(self):
+        self.run_doc("test_dict_transclude.yml")
+
+    def test_null_transclude(self):
+        self.run_doc("test_null_transclude.yml")
+
+    def test_omap_transclude(self):
+        self.run_doc("test_omap_transclude.yml")
+
+    def test_pairs_transclude(self):
+        self.run_doc("test_pairs_transclude.yml")
+
+    def test_scalar_transclude(self):
+        self.run_doc("test_scalar_transclude.yml")
+
+    def test_set_transclude(self):
+        self.run_doc("test_set_transclude.yml")
 
     def test_bad_userparams(self):
         event = self.lambda_event([], self.artifact_dict("Output", "key"))

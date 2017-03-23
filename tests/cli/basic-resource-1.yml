@@ -12,4 +12,7 @@
     ? A
     ? B
     ? F
+- !Assembly WithinMapping:
+    X: 1.7
+    Y: 2000-01-01T00:00:00Z
 - !Assembly Empty:

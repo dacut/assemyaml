@@ -1,210 +1,154 @@
 from __future__ import absolute_import, print_function
 from logging import getLogger
+from six.moves import range
+from yaml.nodes import MappingNode, ScalarNode, SequenceNode
 
 log = getLogger("assemyaml.types")
 
+# Assemyaml-specific tags
+ASSEMYAML_NS = u"tag:assemyaml.nz,2017:"
+GLOBAL_ASSEMBLY_TAG = ASSEMYAML_NS + u"Assembly"
+GLOBAL_TRANSCLUDE_TAG = ASSEMYAML_NS + u"Transclude"
+LOCAL_ASSEMBLY_TAG = u"!Assembly"
+LOCAL_TRANSCLUDE_TAG = u"!Transclude"
 
-class Locatable(object):
-    def _set_marks(self, node):
-        self.start_mark = node.start_mark
-        self.end_mark = node.end_mark
+# YAML native types
+YAML_NS = u"tag:yaml.org,2002:"
+YAML_BINARY_TAG = YAML_NS + u"binary"
+YAML_BOOL_TAG = YAML_NS + u"bool"
+YAML_FLOAT_TAG = YAML_NS + u"float"
+YAML_INT_TAG = YAML_NS + u"int"
+YAML_NULL_TAG = YAML_NS + u"null"
+YAML_MAP_TAG = YAML_NS + u"map"
+YAML_OMAP_TAG = YAML_NS + u"omap"
+YAML_PAIRS_TAG = YAML_NS + u"pairs"
+YAML_SEQ_TAG = YAML_NS + u"seq"
+YAML_SET_TAG = YAML_NS + u"set"
+YAML_STR_TAG = YAML_NS + u"str"
+YAML_TIMESTAMP_TAG = YAML_NS + u"timestamp"
 
-    def copy(self):
-        result = super(Locatable, self).copy()
-        result = type(self)(result)
-        result.start_mark = self.start_mark
-        result.end_mark = self.end_mark
-        return result
+# Because Python3 removed this from types <sigh>
+NoneType = type(None)
 
-    @classmethod
-    def represent(cls, dumper, data):
-        return dumper.represent_data(data.py_type(data))
+# tag-to-function mapping for comparing nodes
+comparison_functions = {}
 
 
-class LocatableNull(Locatable):
-    py_type = type(None)
+def comparison_function(*tags):
+    def add_function(f):
+        for tag in tags:
+            comparison_functions[tag] = f
+        return f
 
-    def __init__(self, value):
-        super(LocatableNull, self).__init__()
-        return
+    return add_function
 
-    def __bool__(self):
+
+def nodes_equal(a, b):
+    """
+    nodes_equal(a, b) -> bool
+
+    Indicates whether two nodes are equal (examining both tags and values).
+    """
+    global comparison_functions
+
+    if a.tag != b.tag:
         return False
-    __nonzero__ = __bool__
 
-    def __eq__(self, other):
-        return other is None or isinstance(other, LocatableNull)
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return hash(None)
-
-    def __repr__(self):
-        return "None"
-
-    @classmethod
-    def represent(cls, dumper, data):
-        return dumper.represent_data(None)
-
-
-class LocatableProxy(Locatable):
-    def __init__(self, value, start_mark=None, end_mark=None):
-        super(LocatableProxy, self).__init__()
-        self._proxy_value = value
-        self.start_mark = start_mark
-        self.end_mark = end_mark
-        return
-
-    def __bool__(self):
-        return bool(self._proxy_value)
-    __nonzero__ = __bool__
-
-    def __eq__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value == other._proxy_value
-        else:
-            return self._proxy_value == other
-
-    def __ne__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value != other._proxy_value
-        else:
-            return self._proxy_value != other
-
-    def __lt__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value < other._proxy_value
-        else:
-            return self._proxy_value < other
-
-    def __le__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value <= other._proxy_value
-        else:
-            return self._proxy_value <= other
-
-    def __ge__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value >= other._proxy_value
-        else:
-            return self._proxy_value >= other
-
-    def __gt__(self, other):
-        if isinstance(other, LocatableProxy):
-            return self._proxy_value > other._proxy_value
-        else:
-            return self._proxy_value > other
-
-    def __hash__(self):
-        return hash(self._proxy_value)
-
-    def __repr__(self):
-        return repr(self._proxy_value)
-
-    def __getattr__(self, name):
-        return getattr(self._proxy_value, name)
-
-    def __setattr__(self, name, value):
-        if name in ("_proxy_value", "start_mark", "end_mark"):
-            self.__dict__[name] = value
-        else:
-            setattr(self._proxy_value, name, value)
-
-        return
-
-    def __delattr__(self, name):
-        return delattr(self._proxy_value, name)
-
-    @classmethod
-    def represent(cls, dumper, data):
-        return dumper.represent_data(data._proxy_value)
-
-    def to_json(self):
-        return self._proxy_value
-
-
-LocatableBool = type("LocatableBool", (LocatableProxy,), {"py_type": bool})
-LocatableDict = type("LocatableDict", (Locatable, dict), {"py_type": dict})
-LocatableList = type("LocatableList", (Locatable, list), {"py_type": list})
-LocatableSet = type("LocatableSet", (Locatable, set), {"py_type": set})
-
-
-class TAPoint(Locatable):
-    namespace = u"tag:assemyaml.nz,2017:"
-
-    def __init__(self, name):
-        super(TAPoint, self).__init__()
-        assert not isinstance(name, TAPoint)
-        self.name = name
-        return
-
-    def __hash__(self):
-        return hash(self.name)
-
-    @classmethod
-    def construct(cls, loader, node):
-        return cls(loader.construct_scalar(node))
-
-    @classmethod
-    def represent(cls, dumper, data):  # pragma: nocover
-        dumper.represent_str("ERROR: Attempted to stream out %s" %
-                             cls.__name__)
-
-
-class TranscludePoint(TAPoint):
-    global_tag = TAPoint.namespace + u"Transclude"
-    local_tag = u"!Transclude"
-
-    def __repr__(self):
-        return "!Transclude %s" % self.name
-
-
-class AssemblyPoint(TAPoint):
-    global_tag = TAPoint.namespace + u"Assembly"
-    local_tag = u"!Assembly"
-
-    def __repr__(self):
-        return "!Assembly [%s]" % self.name
-
-
-class UnknownLocalTag(Locatable):
-    def __init__(self, tag, value, start_mark=None, end_mark=None):
-        super(UnknownLocalTag, self).__init__()
-        self.tag = tag
-        self.value = value
-        self.start_mark = start_mark
-        self.end_mark = end_mark
-        return
-
-    @classmethod
-    def yaml_constructor(cls, loader, node):
-        return cls(node.tag, node.value, node.start_mark, node.end_mark)
-
-    def __repr__(self):
-        return "%s %r" % (self.tag, self.value)
-
-    @classmethod
-    def represent(cls, dumper, data):
-        if isinstance(data.value, (list, set, tuple)):
-            log.debug("UnknownLocalTag.represent sequence: %s %s",
-                      data.tag, data.value)
-            return dumper.represent_sequence(data.tag, data.value)
-        elif isinstance(data.value, dict):
-            log.debug("UnknownLocalTag.represent mapping: %s %s",
-                      data.tag, data.value)
-            return dumper.represent_mapping(data.tag, data.value)
-        else:
-            log.debug("UnknownLocalTag.represent scalar: %s %s",
-                      data.tag, data.value)
-            return dumper.represent_scalar(data.tag, data.value)
-
-    def __eq__(self, other):
-        if not isinstance(other, UnknownLocalTag):
+    try:
+        return comparison_functions[a.tag](a, b)
+    except KeyError:
+        log.info("No comparison function found for %s", a.tag)
+        if type(a) is not type(b):
             return False
 
-        return self.tag == other.tag and self.value == other.value
+        if isinstance(a, ScalarNode):
+            return scalar_compare(a, b)
+        elif isinstance(a, SequenceNode):
+            return seq_compare(a, b)
+        elif isinstance(a, MappingNode):
+            return map_compare(a, b)
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
+        return False
+
+
+@comparison_function(YAML_BINARY_TAG, YAML_BOOL_TAG, YAML_FLOAT_TAG,
+                     YAML_INT_TAG, YAML_STR_TAG, YAML_TIMESTAMP_TAG)
+def scalar_compare(a, b):
+    return a.value == b.value
+
+
+@comparison_function(YAML_NULL_TAG)
+def null_compare(a, b):
+    return True
+
+
+@comparison_function(YAML_OMAP_TAG, YAML_PAIRS_TAG, YAML_SEQ_TAG)
+def seq_compare(a, b):
+    if len(a.value) != len(b.value):
+        return False
+
+    for a_el, b_el in zip(a.value, b.value):
+        return nodes_equal(a_el, b_el)
+
+
+@comparison_function(YAML_SET_TAG)
+def set_compare(a, b):
+    # We need to do an unordered comparison. Since we can't put this into a
+    # Python datastructure, the comparison is O(n^2).
+    if len(a.value) != len(b.value):
+        return False
+
+    a_values = [key for key, _ in a.value]
+    b_values = [key for key, _ in b.value]
+
+    for a_el in a_values:
+        # Look for this value anywhere in the b_values
+        for i in range(len(b_values)):
+            b_el = b_values[i]
+            if nodes_equal(a_el, b_el):
+                # Found a match. Mark it as seen from b_values by deleting it.
+                del b_values[i]
+                break
+        else:
+            # Not found. We're done.
+            return False
+
+    assert len(b_values) == 0
+    return True
+
+
+@comparison_function(YAML_MAP_TAG)
+def map_compare(a, b):
+    # This is similar to set_compare, except the values are 2-tuples in the
+    # form (key, value).
+    if len(a.value) != len(b.value):
+        return False
+
+    b_values = list(b.value)
+
+    for a_key, a_value in a.value:
+        # Look for this key anywhere in the b_values
+        for i in range(len(b_values)):
+            b_key, b_value = b_values[i]
+
+            if nodes_equal(a_key, b_key):
+                if not nodes_equal(a_value, b_value):
+                    return False
+
+                # Found a match. Mark it as seen from b_values by deleting it.
+                del b_values[i]
+                break
+        else:
+            # Not found. We're done.
+            return False
+
+    assert len(b_values) == 0
+    return True
+
+
+def mapping_find(mapping, node):
+    for i, kv in enumerate(mapping.value):
+        if nodes_equal(kv[0], node):
+            return (i, kv[0], kv[1])
+
+    return None

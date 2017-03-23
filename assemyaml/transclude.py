@@ -1,146 +1,107 @@
 from logging import getLogger
-from six.moves import range
-from .assemble import get_assemblies
-from .constructor import LocatableNull
+from .assemble import assemble, merge_nodes
 from .error import TranscludeError
-from .loader import LocatableLoader
-from .types import AssemblyPoint, TranscludePoint
+from .types import GLOBAL_TRANSCLUDE_TAG, LOCAL_TRANSCLUDE_TAG, YAML_SEQ_TAG
+from yaml import compose_all
+from yaml.nodes import (
+    Node, CollectionNode, MappingNode, ScalarNode, SequenceNode,
+)
 
-
-NoneType = type(None)
 log = getLogger("assemyaml.transclude")
 
 
 def transclude_template(stream, assemblies, local_tags=True):
-    loader = LocatableLoader(stream)
+    documents = []
 
-    try:
-        loader.add_constructor(
-            TranscludePoint.global_tag, TranscludePoint.construct)
-        loader.add_constructor(
-            AssemblyPoint.global_tag, AssemblyPoint.construct)
-        if local_tags:
-            loader.add_constructor(
-                TranscludePoint.local_tag, TranscludePoint.construct)
-            loader.add_constructor(
-                AssemblyPoint.local_tag, AssemblyPoint.construct)
+    for doc in compose_all(stream):
+        # Wrap the document in a sequence node so we can apply get_assemblies()
+        # and transclude() to an assembly or transclude at the top level.
+        wrapper = SequenceNode(YAML_SEQ_TAG, [doc])
 
-        documents = []
+        # Record any assemblies in the document itself, but don't apply
+        # these to other documents.
+        doc_assemblies = assemblies.copy()
 
-        while loader.check_data():
-            # Record any assemblies in the document itself, but don't apply
-            # these to other documents.
-            doc = loader.get_data()
-            doc_assemblies = assemblies.copy()
-            get_assemblies([doc], doc_assemblies)
-            transclude([doc], doc_assemblies)
-            documents.append(doc)
+        log.debug("Before transclude: wrapper=%s", wrapper)
 
-        return documents
-    finally:
-        loader.dispose()
+        wrapper = assemble(wrapper, doc_assemblies, local_tags)
+        wrapper = transclude(wrapper, doc_assemblies, local_tags)
+
+        log.debug("After transclude:  wrapper=%s", wrapper)
+
+        documents.append(wrapper.value[0])
+
+    return documents
 
 
-def transclude(node, assemblies):
+def transclude(node, assemblies, local_tags):
     """
-    transclude(node, assemblies)
+    transclude(node, assemblies, local_tags) -> node
 
     Find all transclusion points in the given node and replace or merge their
     contents with values from the assemblies.
     """
-    if isinstance(node, list):
-        keys = range(len(node))
-    elif isinstance(node, dict):
-        keys = list(node.keys())
-    else:
+    assert isinstance(node, Node)
+    if isinstance(node, ScalarNode):
         # Scalar type -- no need to evaluate
-        return
+        return node
 
-    for key in keys:
-        value = node[key]
-        trans_name, trans_value = get_transclude(value)
-        if trans_name is not None:
-            existing_value = assemblies.get(trans_name)
-            log.debug("trans_name=%s trans_value=%s existing_value=%s",
-                      trans_name, trans_value, existing_value)
+    log.debug("transclude(%s)", node)
 
-            # Merge the assembly value with the transcluded value.
-            if isinstance(trans_value, (NoneType, LocatableNull)):
-                value = existing_value
-            elif isinstance(existing_value, list):
-                if not isinstance(trans_value, list):
-                    raise TranscludeError(
-                        "Mismatched assembly types for %s: list at" %
-                        trans_name,
-                        getattr(existing_value, "start_mark", None),
-                        "%s at" % trans_value.py_type.__name__,
-                        getattr(trans_value, "start_mark", None))
+    name, value = get_transclude(node, local_tags)
+    if name is not None:
+        log.debug("transclude starting on node=%s", node)
+        assembly_value = assemblies.get(name)
 
-                value = trans_value + existing_value
-            elif isinstance(existing_value, dict):
-                if not isinstance(trans_value, dict):
-                    raise TranscludeError(
-                        "Mismatched assembly types for %s: dict at" %
-                        trans_name,
-                        getattr(existing_value, "start_mark", None),
-                        "%s at" % trans_value.py_type.__name__,
-                        getattr(trans_value, "start_mark", None))
+        if assembly_value is not None:
+            # Add existing assembly values into the transcluded value.
+            value = merge_nodes(value, assembly_value)
 
-                value = existing_value.copy()
-                for dkey in trans_value:
-                    if dkey in existing_value:
-                        raise TranscludeError(
-                            ("Duplicate key %r for assembly %s: first "
-                             "occurrence at") % (dkey, trans_name),
-                            getattr(existing_value, "start_mark", None),
-                            "second occurrence at",
-                            getattr(trans_value, "start_mark", None))
-                    value[dkey] = trans_value[dkey]
-            elif isinstance(existing_value, set):
-                if not isinstance(trans_value, set):
-                    raise TranscludeError(
-                        "Mismatched assembly types for %s: set at" %
-                        trans_name,
-                        getattr(existing_value, "start_mark", None),
-                        "%s at" % trans_value.py_type.__name__,
-                        getattr(trans_value, "start_mark", None))
+        node = value
+        assert isinstance(node, Node)
+        if isinstance(node, ScalarNode):
+            return node
 
-                value = existing_value.union(trans_value)
-            elif isinstance(existing_value, (NoneType, LocatableNull)):
-                value = trans_value
-            else:
-                raise TranscludeError(
-                    "Cannot set value for assembly %s: %s at" % (
-                        trans_name, existing_value.py_type.__name__),
-                    getattr(existing_value, "start_mark", None),
-                    "%s at" % trans_value.py_type.__name__,
-                    getattr(trans_value, "start_mark", None))
+    # Recurse on the node's value
+    old_values = node.value
+    node.value = []
 
-            # Move the assembly value up in the hierarchy
-            node[key] = value
+    for value in old_values:
+        if isinstance(value, tuple):
+            value = tuple([transclude(el, assemblies, local_tags)
+                          for el in value])
+        else:
+            assert isinstance(value, Node)
+            value = transclude(value, assemblies, local_tags)
 
-        # Recurse on the value
-        transclude(value, assemblies)
-    return
+        node.value.append(value)
+
+    return node
 
 
-def get_transclude(node):
+def get_transclude(node, local_tags):
     """
     get_transclude(node) -> (name, value) | (None, None)
 
     If node represents an transclude point, decompose it into the name and
     value of the node.
     """
-    if not isinstance(node, dict):
+    # This node is a transclude if it's a mapping node and has a key tagged
+    # with one of our transclude tags.
+    if not isinstance(node, MappingNode):
         return (None, None)
 
     transclude_key = None
-    for key in node:
-        if isinstance(key, TranscludePoint):
-            transclude_key = key
+    transclude_value = None
+    for key_node, value_node in node.value:
+        log.debug("get_transclude: considering key_node=%s", key_node)
+        if (key_node.tag == GLOBAL_TRANSCLUDE_TAG or  # noqa: E129
+            local_tags and key_node.tag == LOCAL_TRANSCLUDE_TAG):
+            transclude_key = key_node
+            transclude_value = value_node
             break
-
-    if transclude_key is None:
+    else:
+        # No transclude key found.
         return (None, None)
 
     # Make sure the transclude conforms to rules
@@ -153,15 +114,15 @@ def get_transclude(node):
     #   !Transclude Foo: ...
     #   !Transclude Bar: ...
     #   p: q
-    if len(node) != 1:
+    if len(node.value) != 1:
         raise TranscludeError(
             None, None, "Transclude must be a single-entry mapping",
-            getattr(node, "start_mark", None))
+            node.start_mark)
 
     # Rule 2: Transclude name must be a scalar.
-    if isinstance(transclude_key.name, (list, dict, tuple)):  # pragma: nocover
+    if isinstance(transclude_key, CollectionNode):
         raise TranscludeError(
             None, None, "Transclude name must be a scalar",
-            getattr(transclude_key.name, "start_mark", None))
+            transclude_key.start_mark)
 
-    return (transclude_key.name, node[transclude_key])
+    return (transclude_key.value, transclude_value)

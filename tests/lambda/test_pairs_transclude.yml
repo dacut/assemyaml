@@ -13,7 +13,7 @@
       Name: Resource1
       Files:
         "assemble.yml": |
-          !Assembly World: !!omap
+          !Assembly World: !!pairs
             - C: 4
             - C: 5
             - E: 6
@@ -22,7 +22,7 @@
     Name: Output
     Files:
       "assemble.yml": |
-        Hello: !!omap
+        Hello: !!pairs
           - A: 1
           - A: 2
           - B: 3
