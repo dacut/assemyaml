@@ -41,6 +41,7 @@ main () {
   cp ./assemyaml-lambda-latest.zip ./assemyaml-lambda-${version}.zip || exit 1
 
   if [[ ! -z "$upload_location" ]]; then
+    upload_location="$(echo "$upload_location" | sed -e 's,/$,,')"
     aws s3 cp ./assemyaml-lambda-latest.zip \
       "$upload_location"/assemyaml-lambda-latest.zip --acl public-read
     aws s3 cp ./assemyaml-lambda-${version}.zip \
