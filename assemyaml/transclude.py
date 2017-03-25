@@ -1,10 +1,12 @@
 from logging import getLogger
 from .assemble import assemble, merge_nodes
 from .error import TranscludeError
-from .types import GLOBAL_TRANSCLUDE_TAG, LOCAL_TRANSCLUDE_TAG, YAML_SEQ_TAG
+from .types import (
+    copy_node, GLOBAL_TRANSCLUDE_TAG, LOCAL_TRANSCLUDE_TAG, YAML_SEQ_TAG,
+)
 from yaml import compose_all
 from yaml.nodes import (
-    Node, CollectionNode, MappingNode, ScalarNode, SequenceNode,
+    CollectionNode, MappingNode, Node, ScalarNode, SequenceNode,
 )
 
 log = getLogger("assemyaml.transclude")
@@ -57,7 +59,7 @@ def transclude(node, assemblies, local_tags):
             # Add existing assembly values into the transcluded value.
             value = merge_nodes(value, assembly_value)
 
-        node = value
+        node = copy_node(value)
         assert isinstance(node, Node)
         if isinstance(node, ScalarNode):
             return node

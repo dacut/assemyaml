@@ -1,7 +1,9 @@
 from __future__ import absolute_import, print_function
 from logging import getLogger
 from six.moves import range
-from yaml.nodes import MappingNode, ScalarNode, SequenceNode
+from yaml.nodes import (
+    CollectionNode, MappingNode, Node, ScalarNode, SequenceNode,
+)
 
 log = getLogger("assemyaml.types")
 
@@ -32,6 +34,36 @@ NoneType = type(None)
 
 # tag-to-function mapping for comparing nodes
 comparison_functions = {}
+
+
+def copy_node(node):
+    """
+    copy_node(node) -> node
+
+    Create a deep copy of the specified node or list/tuple of nodes.
+
+    If node is not a list, tuple, or Node, it is returned unchanged.
+    """
+    if isinstance(node, tuple):
+        return tuple([copy_node(el) for el in node])
+    elif isinstance(node, list):
+        return [copy_node(el) for el in node]
+    elif not isinstance(node, Node):
+        return node
+
+    kw = {
+        "tag": node.tag,
+        "start_mark": node.start_mark,
+        "end_mark": node.end_mark,
+        "value": copy_node(node.value),
+    }
+
+    if isinstance(node, ScalarNode):
+        kw["style"] = node.style
+    elif isinstance(node, CollectionNode):
+        kw["flow_style"] = node.flow_style
+
+    return type(node)(**kw)
 
 
 def comparison_function(*tags):

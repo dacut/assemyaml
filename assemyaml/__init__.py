@@ -126,6 +126,8 @@ def main(args=None):
         output.flush()
         output.close()
 
+    sys.stderr.flush()
+
     return result
 
 
